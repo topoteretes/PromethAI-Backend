@@ -49,7 +49,7 @@ if os.path.exists(env_file):
     start_api_server()
 
 else:
-    secrets = fetch_secret("promethai-dev-backend-secretso-promethaijs-dotenv", "eu-west-1", "/usr/src/app/.env")
+    secrets = fetch_secret("promethai-dev-backend-secretso-promethaijs-dotenv", "eu-west-1", ".env")
     if secrets:
         print(secrets)
     load_dotenv()
