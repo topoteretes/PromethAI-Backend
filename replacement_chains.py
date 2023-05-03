@@ -33,7 +33,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
 PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
-assert OPENAI_API_KEY, "OPENAI_API_KEY environment variable is missing from .env"
 import os
 os.environ["GPLACES_API_KEY"] = os.getenv("GPLACES_API_KEY", "")
 
