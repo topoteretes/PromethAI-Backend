@@ -55,12 +55,12 @@ load_dotenv()
 #
 #         load_dotenv_extensions(DOTENV_EXTENSIONS)
 print("Talk to the AI!")
-if API_ENABLED:
+# if API_ENABLED:
     # Run FastAPI application
-    start_api_server()
+start_api_server()
 
-else:
-    pass
+# else:
+#     pass
 # else    while True:
 #         userInput = input()
 #         if userInput:
