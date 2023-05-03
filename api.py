@@ -173,6 +173,10 @@ async def generate_diet_sub_goal(request_data: Payload) -> dict:
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
 
+@app.get("/health")
+def health_check():
+    return {"status": "OK"}
+
 def start_api_server():
     # agent = establish_connection()
     uvicorn.run(app, host="0.0.0.0", port=8000)
