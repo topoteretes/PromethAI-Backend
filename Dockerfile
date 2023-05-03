@@ -18,6 +18,14 @@ COPY pyproject.toml poetry.lock /app/
 RUN poetry config virtualenvs.create false && \
     poetry install --no-root --no-dev
 
+RUN apt-get update -q && \
+    apt-get install curl zip jq netcat -y -q && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip -qq awscliv2.zip && ./aws/install && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+
 RUN playwright install
 RUN playwright install-deps
 
