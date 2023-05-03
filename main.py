@@ -22,7 +22,6 @@ def fetch_secret(secret_name, region_name, env_file_path):
         secret = response["SecretBinary"]
     with open(env_file_path, "w") as env_file:
         env_file.write(secret)
-    print("HERE IS THE SECRET", secret)
     return "Success"
 
 
