@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# the inputs will be passed as json
+eval "$(jq -r '@sh "export region=\(.region) account=\(.account) image_name=\(.image_name)"')"
+
+# extract the latest tag and remove qoutes
+imageTag=$(aws ecr describe-images --registry-id "${account}" --region "${region}" --repository-name "${image_name}" --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]')
+imageTag=`sed -e 's/^"//' -e 's/"$//' <<<"$imageTag"`
+
+# the output needs to be a valid json
+jq -n --arg imageTag "$imageTag" '{"image_tag":$imageTag}'
