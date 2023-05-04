@@ -1,5 +1,6 @@
 # PromethAI
 
+B
 PromethAI is a Python-based AGI (artificial general intelligence) project that recommends food choices based on a user's goals and preferences, and can modify its recommendations based on user feedback.
 The project is built on top of an existing AGI project, and redone using Langchain library that uses OpenAI and Pinecone to give memory to the AI agent, and allows it to "think" before making an action (outputting text).
 
@@ -121,4 +122,17 @@ curl --location --request POST 'http://0.0.0.0:8000/generate-diet-sub-goal' \
     ]
   }
 }'
+```
+
+# To test Git workflows, install act
+
+```
+brew install act
+```
+
+Add AWS config files to the env
+# To run tests
+
+```
+act --env-file act.env
 ```
