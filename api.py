@@ -9,6 +9,7 @@ import logging
 from typing import Dict, Any
 from replacement_chains import Agent
 
+import json
 
 CANNED_RESPONSES=False
 
@@ -55,7 +56,6 @@ async def variate_diet_assumption(request_data: Payload) -> dict:
 
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
-
 
 
 @app.post("/variate-food-goal", response_model=dict)
@@ -109,7 +109,7 @@ async def restaurant_request(request_data: Payload) -> dict:
         print(stripped_string_output)
     else:
         print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
+    stripped_string_dict = {"response": json.loads("["+stripped_string_output+"]")}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
 
@@ -125,6 +125,7 @@ async def delivery_request(request_data: Payload) -> dict:
     stripped_string_dict = {"response": output}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
+
 @app.post("/solution-request", response_model=dict)
 async def solution_request(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -142,6 +143,7 @@ async def solution_request(request_data: Payload) -> dict:
     stripped_string_dict = {"response": stripped_string_output}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
+
 @app.post("/generate-diet-goal", response_model=dict)
 async def generate_diet_goal(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -155,7 +157,7 @@ async def generate_diet_goal(request_data: Payload) -> dict:
         print(stripped_string_output)
     else:
         print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
+    stripped_string_dict = {"response": json.loads(stripped_string_output.replace("'", '"').replace("\\n", ""))}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
 
@@ -172,7 +174,7 @@ async def generate_diet_sub_goal(request_data: Payload) -> dict:
         print(stripped_string_output)
     else:
         print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
+    stripped_string_dict = {"response": json.loads("["+stripped_string_output.replace("\'", '"').replace("\\n", "").replace('\\', "")+"]")}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
 
