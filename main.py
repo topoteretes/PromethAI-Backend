@@ -27,13 +27,13 @@ def fetch_secret(secret_name, region_name, env_file_path):
     if os.path.exists(env_file_path):
         print(f"The .env file is located at: {os.path.abspath(env_file_path)}")
 
-        # Move the .env file to the 'app' folder if it's not already there
-        app_folder = 'app'
-        target_path = os.path.join(app_folder, os.path.basename(env_file_path))
-
-        if os.path.abspath(env_file_path) != os.path.abspath(target_path):
-            shutil.move(env_file_path, target_path)
-            print(f"The .env file has been moved to: {os.path.abspath(target_path)}")
+        # # Move the .env file to the 'app' folder if it's not already there
+        # app_folder = 'app'
+        # target_path = os.path.join(app_folder, os.path.basename(env_file_path))
+        #
+        # if os.path.abspath(env_file_path) != os.path.abspath(target_path):
+        #     shutil.move(env_file_path, target_path)
+        #     print(f"The .env file has been moved to: {os.path.abspath(target_path)}")
     else:
         print("The .env file was not found.")
     return "Success in loading env files"
