@@ -40,6 +40,9 @@ class ImageResponse(BaseModel):
     success: bool
     message: str
 
+@app.get("/")
+async def root():
+    return {"message": "Hello, World, I am alive!"}
 
 @app.post("/variate-diet-assumption", response_model=dict)
 async def variate_diet_assumption(request_data: Payload) -> dict:
