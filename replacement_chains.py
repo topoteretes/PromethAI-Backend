@@ -25,6 +25,7 @@ import subprocess
 # database_url = os.environ.get('DATABASE_URL')
 # import nltk
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 from langchain.llms import Replicate
 
 import os
@@ -46,8 +47,8 @@ class Agent():
         self.memory = None
         self.thought_id_timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]  # Timestamp with millisecond precision
         self.last_message = ""
-        self.llm = OpenAI(temperature=0.0,max_tokens = 1000, openai_api_key = OPENAI_API_KEY)
-        self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1")
+        self.llm = OpenAI(temperature=0.0,max_tokens = 1000, openai_api_key = self.OPENAI_API_KEY)
+        self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
         self.verbose: bool = True
         self.openai_model = "gpt-3.5-turbo"
         self.openai_temperature = 0.0
@@ -362,6 +363,7 @@ class Agent():
         complete_query = PromptTemplate.from_template(complete_query)
         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
         chain_result = chain.run(prompt=complete_query).strip()
+        GPLACES_API_KEY = self.GPLACES_API_KEY
         places = GooglePlacesTool()
         output = places.run(chain_result)
         restaurants = re.split(r'\d+\.', output)[1:3]
