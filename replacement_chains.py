@@ -26,17 +26,19 @@ import subprocess
 # import nltk
 load_dotenv()
 from langchain.llms import Replicate
-OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-3.5-turbo"
-GPLACES_API_KEY = "AIzaSyCAvRAf1eCJ27fTfjJauVgdhI5fodAFA_k"
-OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
+
 import os
-os.environ["GPLACES_API_KEY"] = os.getenv("GPLACES_API_KEY", "")
 
 class Agent():
+    load_dotenv()
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-3.5-turbo"
+    GPLACES_API_KEY = os.getenv("GPLACES_API_KEY", "")
+    OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+    PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
+    REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
+
     def __init__(self, table_name=None, user_id: Optional[str] = "user123", session_id: Optional[str] = None) -> None:
         self.table_name = table_name
         self.user_id = user_id
