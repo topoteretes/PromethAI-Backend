@@ -84,6 +84,7 @@ class Agent():
         ][0]["embedding"]
 
     def init_pinecone(self, index_name):
+            load_dotenv()
             PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
