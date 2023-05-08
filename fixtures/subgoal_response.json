@@ -1,0 +1,88 @@
+{
+  "sub_goals": [
+    {
+      "goal_name": "Budget",
+      "sub_goals": [
+        {
+          "name": "Cheap",
+          "amount": 80
+        },
+        {
+          "name": "Moderate",
+          "amount": 20
+        },
+        {
+          "name": "Expensive",
+          "amount": 0
+        },
+        {
+          "name": "Splurge",
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "goal_name": "Cuisine",
+      "sub_goals": [
+        {
+          "name": "Italian",
+          "amount": 50
+        },
+        {
+          "name": "Mexican",
+          "amount": 30
+        },
+        {
+          "name": "Chinese",
+          "amount": 20
+        },
+        {
+          "name": "Indian",
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "goal_name": "Healthy",
+      "sub_goals": [
+        {
+          "name": "Low-Calorie",
+          "amount": 50
+        },
+        {
+          "name": "Low-Carb",
+          "amount": 30
+        },
+        {
+          "name": "Low-Fat",
+          "amount": 20
+        },
+        {
+          "name": "Vegetarian",
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "goal_name": "Taste",
+      "sub_goals": [
+        {
+          "name": "Spicy",
+          "amount": 50
+        },
+        {
+          "name": "Salty",
+          "amount": 30
+        },
+        {
+          "name": "Sweet",
+          "amount": 20
+        },
+        {
+          "name": "Sour",
+          "amount": 0
+        }
+      ]
+    }
+  ]
+}
