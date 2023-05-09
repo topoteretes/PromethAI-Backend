@@ -298,13 +298,13 @@ class Agent():
             print("Execution time: ", execution_time, " seconds")
             json_data = json.dumps(chain_result)
             return json_data
+
     def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
 
         prompt = """
-              Based on all the history and information of this user, suggest mind map that would have  four decision points that are personal to him that he should apply to optimize his decision choices related to food. The cuisine should be one of the points, and goal should contain one or maximum two words
-              Make sure to provide data in the following format
-              Answer with a result in a correct  python dictionary that is properly formatted that contains the keys and values. The structure should only contain top of the structure as result_type as "Personal Goal then following  under with goals under goal_name and Hydratation should not be there . After the dictionary output , don't explain anything or write 
+              Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. The cuisine should be one of the points, and goal should contain one or maximum two words
+              Answer a condensed JSON with no whitespaces. The structure should only contain a list of goals under field "goals". After the JSON output, don't explain or write anything.
             """
 
         self.init_pinecone(index_name=self.index)
@@ -320,10 +320,9 @@ class Agent():
             return output
         else:
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
-            chain_result = chain.run( prompt=complete_query).strip()
+            chain_result = chain.run(prompt=complete_query).strip()
             print("RESULT IS ", chain_result)
-            json_data = json.dumps(chain_result)
-            return json_data
+            return chain_result
 
     def sub_goal_generation(self, factors: dict, model_speed:str):
         """Serves to generate sub goals for the user and drill down into it"""
@@ -331,10 +330,9 @@ class Agent():
         prompt = """
             Based on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
              provide a mind map representation of the secondary nodes that can be used to narrow down the choice better. Each of the results should have 4 sub nodes.
-            Answer with a result in a correct  python dictionary that is properly formatted that contains the following keys and must have  values
-            "Result type" should be "Sub Goal" ,  "body" which should contain goal_name and nested fields should contain 
-            sub_goal_name and the values should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
-            After the dictionary output , don't explain anything or write 
+            Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
+            Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
+            After the JSON output, don't explain or write anything
             """
 
         self.init_pinecone(index_name=self.index)
@@ -352,9 +350,7 @@ class Agent():
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run( prompt=complete_query).strip()
             print("RESULT IS ", chain_result)
-            json_data = json.dumps(chain_result)
-
-            return json_data
+            return chain_result
 
     def extract_info(self, s):
         lines = s.split('\n')
@@ -376,7 +372,7 @@ class Agent():
                 {% for factor, value in factors.items() %}
                 For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
                 {% endfor %}
-                Determine the type of restaurant you should offer to a customer. Make the reccomendation very short and to a point, as if it is something you would type on google maps
+                Determine the type of restaurant you should offer to a customer. Make the recomendation very short and to a point, as if it is something you would type on google maps
             """
 
         self.init_pinecone(index_name=self.index)
@@ -394,11 +390,8 @@ class Agent():
         restaurants = re.split(r'\d+\.', output)[1:3]
         # Create a list of dictionaries for each restaurant
         restaurant_list = [self.extract_info(r) for r in restaurants]
-
-        # Convert the list of dictionaries to JSON
-        json_output = json.dumps(restaurant_list)
-        print('HERE IS THE OUTPUT', json_output)
-        return json_output
+        print('HERE IS THE OUTPUT', restaurant_list)
+        return restaurant_list
     async def run_wolt_tool(self, zipcode, chain_result):
         from food_scrapers import  wolt_tool
         return wolt_tool.main(zipcode, chain_result)

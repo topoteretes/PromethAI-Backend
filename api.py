@@ -9,6 +9,7 @@ import logging
 from typing import Dict, Any
 from replacement_chains import Agent
 
+import json
 
 CANNED_RESPONSES=False
 
@@ -57,7 +58,6 @@ async def variate_diet_assumption(request_data: Payload) -> dict:
     return JSONResponse(content=stripped_string_dict)
 
 
-
 @app.post("/variate-food-goal", response_model=dict)
 async def variate_food_goal(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -102,17 +102,7 @@ async def restaurant_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.restaurant_generation(factors_dict, model_speed="slow")
-    start = output.find('{')
-    end = output.rfind('}')
-    if start != -1 and end != -1:
-        stripped_string_output = output[start:end + 1]
-        print(stripped_string_output)
-    else:
-        print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
-    # Return a JSON response with the new dictionary
-    return JSONResponse(content=stripped_string_dict)
-
+    return JSONResponse(content={"response":{"restaurants": output}});
 
 @app.post("/delivery-request", response_model=dict)
 async def delivery_request(request_data: Payload) -> dict:
@@ -125,6 +115,7 @@ async def delivery_request(request_data: Payload) -> dict:
     stripped_string_dict = {"response": output}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
+
 @app.post("/solution-request", response_model=dict)
 async def solution_request(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -142,39 +133,40 @@ async def solution_request(request_data: Payload) -> dict:
     stripped_string_dict = {"response": stripped_string_output}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
+
 @app.post("/generate-diet-goal", response_model=dict)
 async def generate_diet_goal(request_data: Payload) -> dict:
+    if CANNED_RESPONSES:
+        with open('fixtures/goal_response.json', 'r') as f:
+            json_data = json.load(f)
+            stripped_string_dict = {"response": json_data}
+
+            # Return a JSON response with the new dictionary
+            return JSONResponse(content=stripped_string_dict)
+
+
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.goal_generation({}, model_speed= json_payload["model_speed"])
-    start = output.find('{')
-    end = output.rfind('}')
-    if start != -1 and end != -1:
-        stripped_string_output = output[start:end + 1]
-        print(stripped_string_output)
-    else:
-        print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
-    # Return a JSON response with the new dictionary
-    return JSONResponse(content=stripped_string_dict)
+    return JSONResponse(content={"response":json.loads(output)})
 
 @app.post("/generate-diet-sub-goal", response_model=dict)
 async def generate_diet_sub_goal(request_data: Payload) -> dict:
+    if CANNED_RESPONSES:
+        with open('fixtures/subgoal_response.json', 'r') as f:
+            json_data = json.load(f)
+            stripped_string_dict = {"response": json_data}
+
+            # Return a JSON response with the new dictionary
+            return JSONResponse(content=stripped_string_dict)
+
+
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.sub_goal_generation(factors=json_payload["factors"], model_speed= json_payload["model_speed"])
-    start = output.find('{')
-    end = output.rfind('}')
-    if start != -1 and end != -1:
-        stripped_string_output = output[start:end + 1]
-        print(stripped_string_output)
-    else:
-        print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
-    # Return a JSON response with the new dictionary
-    return JSONResponse(content=stripped_string_dict)
+    return JSONResponse(content={"response":json.loads(output)})
 
 @app.get("/health")
 def health_check():
