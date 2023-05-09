@@ -11,13 +11,23 @@ from dotenv import load_dotenv
 import time
 from langchain.llms.openai import OpenAI
 from langchain import LLMChain
+from langchain.schema import  Document
+
 #from heuristic_experience_orchestrator.prompt_template_modification import PromptTemplate
 # from langchain.retrievers import TimeWeightedVectorStoreRetriever
-from langchain.schema import BaseLanguageModel, Document
 import os
 from food_scrapers import wolt_tool
 import json
 from langchain.tools import GooglePlacesTool
+
+
+# redis imports for cache
+
+from langchain.cache import RedisSemanticCache
+import langchain
+import redis
+
+
 
 # nltk.download('punkt')
 import subprocess
@@ -29,6 +39,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 from langchain.llms import Replicate
 
 import os
+
+
+
 
 class Agent():
     load_dotenv()
@@ -53,6 +66,18 @@ class Agent():
         self.openai_model = "gpt-3.5-turbo"
         self.openai_temperature = 0.0
         self.index = "my-agent"
+
+        # use any OPENAI embedding provider
+        from langchain.embeddings import OpenAIEmbeddings
+        embeddings = OpenAIEmbeddings(openai_api_key=self.OPENAI_API_KEY)
+        redis_url = "redis://redis:6379"
+        from langchain.cache import RedisCache
+        from redis import Redis
+        langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
+        # langchain.llm_cache = RedisSemanticCache(
+        #     embedding=embeddings,
+        #     redis_url=redis_url
+        # )
 
     def test_replicate(self):
         start_time = time.time()
