@@ -6,6 +6,7 @@ services:
       - agi_backend
     depends_on:
       - db_agi
+      - redis
     build:
       context: ./
       args:
@@ -31,6 +32,15 @@ services:
       POSTGRES_DB: agi_db
     volumes:
       - ./initdb:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis/redis-stack
+    container_name: "redis"
+    networks:
+      - agi_backend
+    ports:
+      - "6379:6379"
+
 networks:
   agi_backend:
     name: agi_backend
