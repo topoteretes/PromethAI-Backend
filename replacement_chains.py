@@ -52,6 +52,7 @@ class Agent():
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
     REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
+    REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
 
     def __init__(self, table_name=None, user_id: Optional[str] = "user123", session_id: Optional[str] = None) -> None:
         self.table_name = table_name
@@ -70,10 +71,9 @@ class Agent():
         # use any OPENAI embedding provider
         from langchain.embeddings import OpenAIEmbeddings
         embeddings = OpenAIEmbeddings(openai_api_key=self.OPENAI_API_KEY)
-        redis_url = "redis://redis:6379"
         from langchain.cache import RedisCache
         from redis import Redis
-        langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
+        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
         # langchain.llm_cache = RedisSemanticCache(
         #     embedding=embeddings,
         #     redis_url=redis_url
