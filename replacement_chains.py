@@ -462,7 +462,7 @@ if __name__ == "__main__":
     agent = Agent()
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
-    agent.voice_input("I need your help, I am alergic to peanuts ", current_user_state="""result 1 -Goal -  'health': 85, 'time': 75, 'cost': 50 ; result 2 - "sub_goals":"goal_name":"Portion Control","sub_goals":"name":"Vegetables","amount":50,"name":"Fruits","amount":50,"name":"Grains","amount":50,"name":"Proteins","amount":50,"goal_name":"Cuisine","sub_goals":"name":"Italian","amount":50,"name":"Mexican","amount":50,"name":"Indian","amount":50,"name":"Chinese","amount":50,"goal_name":"Macronutrients","sub_goals":"name":"Carbohydrates","amount":50,"name":"Fats","amount":50,"name":"Proteins","amount":50,"name":"Fiber","amount":50""", model_speed="slow")
+    # agent.voice_input("I need your help, I am alergic to peanuts ", current_user_state="""result 1 -Goal -  'health': 85, 'time': 75, 'cost': 50 ; result 2 - "sub_goals":"goal_name":"Portion Control","sub_goals":"name":"Vegetables","amount":50,"name":"Fruits","amount":50,"name":"Grains","amount":50,"name":"Proteins","amount":50,"goal_name":"Cuisine","sub_goals":"name":"Italian","amount":50,"name":"Mexican","amount":50,"name":"Indian","amount":50,"name":"Chinese","amount":50,"goal_name":"Macronutrients","sub_goals":"name":"Carbohydrates","amount":50,"name":"Fats","amount":50,"name":"Proteins","amount":50,"name":"Fiber","amount":50""", model_speed="slow")
     # agent.solution_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
