@@ -175,7 +175,7 @@ async def voice_input(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.voice_input(query=json_payload["query"], current_user_state=json_payload["current_user_state"], model_speed= json_payload["model_speed"])
+    output = agent.voice_input(query=json_payload["query"], model_speed= json_payload["model_speed"])
     return JSONResponse(content={"response":json.loads(output)})
 @app.get("/health")
 def health_check():

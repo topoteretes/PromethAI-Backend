@@ -398,10 +398,10 @@ class Agent():
 
 
 
-    def voice_input(self, query: str, current_user_state:str, model_speed:str):
+    def voice_input(self, query: str, model_speed:str):
         """Serves to generate sub goals for the user and drill down into it"""
 
-        prompt = """ {bu}
+        prompt = """ 
             Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
             1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
             Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
