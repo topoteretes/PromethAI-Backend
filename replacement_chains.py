@@ -12,7 +12,7 @@ import time
 from langchain.llms.openai import OpenAI
 from langchain import LLMChain
 from langchain.schema import  Document
-
+from langchain.chains import SimpleSequentialChain
 #from heuristic_experience_orchestrator.prompt_template_modification import PromptTemplate
 # from langchain.retrievers import TimeWeightedVectorStoreRetriever
 import os
@@ -68,39 +68,11 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        # use any OPENAI embedding provider
-        from langchain.embeddings import OpenAIEmbeddings
-        embeddings = OpenAIEmbeddings(openai_api_key=self.OPENAI_API_KEY)
-        from langchain.cache import RedisCache
-        from redis import Redis
-        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
-        # langchain.llm_cache = RedisSemanticCache(
-        #     embedding=embeddings,
-        #     redis_url=redis_url
-        # )
+        # from langchain.cache import RedisCache
+        # from redis import Redis
+        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
-    def test_replicate(self):
-        start_time = time.time()
-        bb = self.replicate_llm("""             Help me choose what food choice, order, restaurant or a recipe to eat or make for my next meal.     
-                There are 'health', 'time', 'cost' factors I want to consider.
-                
-                For 'health', I want the meal to be '85' points on a scale of 1 to 100 points.
-                
-                For 'time', I want the meal to be '75' points on a scale of 1 to 100 points.
-                
-                For 'cost', I want the meal to be '50' points on a scale of 1 to 100 points.
-                
-                Instructions and ingredients should be detailed.  Result type can be Recipe, but not Meal
-                Answer with a result in a correct  python dictionary that is properly formatted that contains the following keys and must have  values
-                "Result type",  "body" which should contain "title", "rating", "prep_time", "cook_time", "description", "ingredients", "instructions" 
-                The values in JSON should not repeat
-                """)
-        time.sleep(15)
-        end_time = time.time()
 
-        execution_time = end_time - start_time
-        print("Execution time: ", execution_time, " seconds")
-        return print(bb)
     def set_user_session(self, user_id: str, session_id: str) -> None:
         self.user_id = user_id
         self.session_id = session_id
@@ -303,7 +275,7 @@ class Agent():
         """Serves to optimize agent goals"""
 
         prompt = """
-              Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. The cuisine should be one of the points, and goal should contain one or maximum two words
+              Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. It needs to be food and nutrition related. The cuisine should be one of the points, and goal should contain one or maximum two words
               Answer a condensed JSON with no whitespaces. The structure should only contain a list of goals under field "goals". After the JSON output, don't explain or write anything.
             """
 
@@ -329,7 +301,7 @@ class Agent():
 
         prompt = """
             Based on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
-             provide a mind map representation of the secondary nodes that can be used to narrow down the choice better. Each of the results should have 4 sub nodes.
+             provide a mind map representation of the secondary nodes that can be used to narrow down the choice better.It needs to be food and nutrition related. Each of the results should have 4 sub nodes.
             Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
             Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
             After the JSON output, don't explain or write anything
@@ -423,6 +395,50 @@ class Agent():
         output = await wolt_tool.main( zipcode, chain_result)
         return output
 
+
+
+
+    def voice_input(self, query: str, current_user_state:str, model_speed:str):
+        """Serves to generate sub goals for the user and drill down into it"""
+
+        prompt = """ {bu}
+            Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
+            1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
+            Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
+            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
+            Make sure to include the factors in the summary if they are provided
+            """
+
+        self.init_pinecone(index_name=self.index)
+        agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        template = Template(prompt)
+        output = template.render(query=query)
+        print("HERE IS THE AGENT SUMMARY", agent_summary)
+        print("HERE IS THE TEMPLATE", output)
+        complete_query =  output
+        complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
+        if model_speed =='fast':
+            output = self.replicate_llm(output)
+            return output
+        else:
+            chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
+            chain_result = chain.run(prompt=complete_query).strip()
+            json_data = json.dumps(chain_result)
+            return json_data
+            # optimization_prompt = """Based on the query: {query} change and update appropriate of the following results: {{results}}
+            # And append new value in the format "Update_action": 'Goal changed", value: "Diet added", "summary": "The user is updating their goal to lose weight"""
+            # optimization_prompt = Template(optimization_prompt)
+            # results = current_user_state
+            # optimization_output = optimization_prompt.render( results=results)
+            # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+            # review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+            # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
+            # final_output = overall_chain.run('bu').strip()
+            #
+            # json_data = json.dumps(final_output)
+            # return json_data
+
+
     def solution_evaluation_test(self):
         """Serves to update agent traits so that they can be used in summary"""
         return
@@ -444,9 +460,9 @@ class Agent():
 
 if __name__ == "__main__":
     agent = Agent()
-    agent.goal_optimization(factors={}, model_speed="slow")
+    # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
-    #agent.task_identification("I need your help choosing what to eat for my next meal. ")
+    agent.voice_input("I need your help, I am alergic to peanuts ", current_user_state="""result 1 -Goal -  'health': 85, 'time': 75, 'cost': 50 ; result 2 - "sub_goals":"goal_name":"Portion Control","sub_goals":"name":"Vegetables","amount":50,"name":"Fruits","amount":50,"name":"Grains","amount":50,"name":"Proteins","amount":50,"goal_name":"Cuisine","sub_goals":"name":"Italian","amount":50,"name":"Mexican","amount":50,"name":"Indian","amount":50,"name":"Chinese","amount":50,"goal_name":"Macronutrients","sub_goals":"name":"Carbohydrates","amount":50,"name":"Fats","amount":50,"name":"Proteins","amount":50,"name":"Fiber","amount":50""", model_speed="slow")
     # agent.solution_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
