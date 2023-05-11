@@ -416,7 +416,7 @@ class Agent():
         print("HERE IS THE AGENT SUMMARY", agent_summary)
         print("HERE IS THE TEMPLATE", output)
         complete_query =  output
-        complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
+        complete_query = PromptTemplate.from_template(complete_query)
         if model_speed =='fast':
             output = self.replicate_llm(output)
             return output
