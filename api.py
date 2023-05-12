@@ -112,7 +112,7 @@ async def delivery_request(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = await agent.delivery_generation(factors_dict, zipcode=json_payload["zipcode"], model_speed="slow")
     print("HERE IS THE OUTPUT", output)
-    stripped_string_dict = {"response": output}
+    stripped_string_dict = {"response": {"url": output}}
     # Return a JSON response with the new dictionary
     return JSONResponse(content=stripped_string_dict)
 
@@ -177,6 +177,7 @@ async def voice_input(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.voice_input(query=json_payload["query"], model_speed= json_payload["model_speed"])
     return JSONResponse(content={"response":json.loads(output)})
+
 @app.get("/health")
 def health_check():
     return {"status": "OK"}
