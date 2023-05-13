@@ -3,12 +3,19 @@ from concurrent.futures import ThreadPoolExecutor
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
+from langchain import LLMMathChain, SerpAPIWrapper
+from langchain.agents import AgentType, initialize_agent
+from langchain.chat_models import ChatOpenAI
+from langchain.tools import BaseTool, StructuredTool, Tool, tool
 import openai
+from pydantic import BaseModel, Field
 import re
 import datetime
 from jinja2 import Template
 from dotenv import load_dotenv
-import time
+# from langchain.agents import load_tools
+# tool_names = [...]
+# tools = load_tools(tool_names)
 from langchain.llms.openai import OpenAI
 from langchain import LLMChain
 from langchain.schema import  Document
@@ -89,8 +96,12 @@ class Agent():
             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
             return pinecone.Index(index_name)
+    class VectorDBInput(BaseModel):
+        observation: str = Field(description="should be what we are inserting into the memory")
+        namespace: str = Field(description="should be the namespace of the VectorDB")
+    @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
     def _update_memories(self, observation: str, namespace: str):
-        # Fetch related characteristics
+        """Update related characteristics, preferences or dislikes for a user."""
         memory = self.init_pinecone(index_name=self.index)
 
         vector = self.get_ada_embedding(observation)
@@ -108,7 +119,7 @@ class Agent():
         return upsert_response
 
     def _fetch_memories(self, observation: str, namespace:str) -> List[Document]:
-          #"""Fetch related characteristics, preferences or dislikes for a user."""
+        """Fetch related characteristics, preferences or dislikes for a user."""
         query_embedding = self.get_ada_embedding(observation)
         memory = self.init_pinecone(index_name=self.index)
         memory.query(query_embedding, top_k=1, include_metadata=True, namespace=namespace,
@@ -300,7 +311,8 @@ class Agent():
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """
-            Based on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
+            Base
+            d on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
              provide a mind map representation of the secondary nodes that can be used to narrow down the choice better.It needs to be food and nutrition related. Each of the results should have 4 sub nodes.
             Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
             Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
@@ -323,7 +335,9 @@ class Agent():
             chain_result = chain.run( prompt=complete_query).strip()
             print("RESULT IS ", chain_result)
             return chain_result
-
+#use tool to insert into vectordb
+#use tool to pull from vector db
+#use tool to
     def extract_info(self, s):
         lines = s.split('\n')
         name = lines[0]
@@ -423,8 +437,10 @@ class Agent():
         else:
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query).strip()
-            json_data = json.dumps(chain_result)
-            return json_data
+            # json_data = json.dumps(chain_result)
+            # return json_data
+
+
             # optimization_prompt = """Based on the query: {query} change and update appropriate of the following results: {{results}}
             # And append new value in the format "Update_action": 'Goal changed", value: "Diet added", "summary": "The user is updating their goal to lose weight"""
             # optimization_prompt = Template(optimization_prompt)

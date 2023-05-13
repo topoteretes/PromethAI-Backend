@@ -31,4 +31,13 @@ RUN playwright install-deps
 
 WORKDIR /app
 COPY . /app
-ENTRYPOINT ["python", "main.py"]
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+
+
+# Start Gunicorn server
+
+#CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "api:app", "--bind", "0.0.0.0:8000"]
