@@ -308,21 +308,19 @@ class Agent():
                 For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
                 {% endfor %}
                 Instructions and ingredients should be detailed.
-                Answer with a result in a correct  python dictionary that is properly formatted that contains the following keys and must have  values
-                "Result type" should be "Recipe",  "body" which should contain "title", "rating", "prep_time", "cook_time", "description", "ingredients", "instructions"
+                 Answer a condensed JSON with no whitespaces that contains the following keys and values for every recipe in the list of field "recipes":
+                 "title", "rating", "prep_time", "cook_time", "description", "ingredients", "instructions".  After the JSON output, don't explain or write anything
         """
         self.init_pinecone(index_name=self.index)
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt)
         output = template.render(factors=factors)
         complete_query = str(agent_summary) + output
-        # complete_query =  output
         complete_query = PromptTemplate.from_template(complete_query)
 
         if model_speed =='fast':
             output = self.replicate_llm(output)
-            json_data = json.dumps(output)
-            return json_data
+            return output
         else:
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
@@ -341,8 +339,7 @@ class Agent():
 
             execution_time = end_time - start_time
             print("Execution time: ", execution_time, " seconds")
-            json_data = json.dumps(chain_result)
-            return json_data
+            return chain_result
 
     def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
