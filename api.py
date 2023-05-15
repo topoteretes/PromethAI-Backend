@@ -84,16 +84,7 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.recipe_generation(factors_dict, model_speed="slow")
-    start = output.find('{')
-    end = output.rfind('}')
-    if start != -1 and end != -1:
-        stripped_string_output = output[start:end + 1]
-        print(stripped_string_output)
-    else:
-        print("No JSON data found in string.")
-    stripped_string_dict = {"response": stripped_string_output}
-    # Return a JSON response with the new dictionary
-    return JSONResponse(content=stripped_string_dict)
+    return JSONResponse(content={"response":{"recipes": json.loads(output)}});
 
 @app.post("/restaurant-request", response_model=dict)
 async def restaurant_request(request_data: Payload) -> dict:
@@ -112,9 +103,7 @@ async def delivery_request(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = await agent.delivery_generation(factors_dict, zipcode=json_payload["zipcode"], model_speed="slow")
     print("HERE IS THE OUTPUT", output)
-    stripped_string_dict = {"response": {"url": output}}
-    # Return a JSON response with the new dictionary
-    return JSONResponse(content=stripped_string_dict)
+    return JSONResponse(content={"response": {"url": output}})
 
 @app.post("/solution-request", response_model=dict)
 async def solution_request(request_data: Payload) -> dict:
