@@ -79,6 +79,12 @@ async def variate_food_goal(request_data: Payload) -> dict:
 
 @app.post("/recipe-request", response_model=dict)
 async def recipe_request(request_data: Payload) -> dict:
+    if CANNED_RESPONSES:
+        with open('fixtures/recipe_response.json', 'r') as f:
+            json_data = json.load(f)
+            stripped_string_dict = {"response": json_data}
+            return JSONResponse(content=stripped_string_dict)
+
     json_payload = request_data.payload
     factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
     agent = Agent()
@@ -129,8 +135,6 @@ async def generate_diet_goal(request_data: Payload) -> dict:
         with open('fixtures/goal_response.json', 'r') as f:
             json_data = json.load(f)
             stripped_string_dict = {"response": json_data}
-
-            # Return a JSON response with the new dictionary
             return JSONResponse(content=stripped_string_dict)
 
 
