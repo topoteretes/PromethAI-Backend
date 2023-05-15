@@ -7,15 +7,14 @@ from langchain import LLMMathChain, SerpAPIWrapper
 from langchain.agents import AgentType, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
+from langchain.vectorstores import Pinecone
+from langchain.embeddings.openai import OpenAIEmbeddings
 import openai
 from pydantic import BaseModel, Field
 import re
 import datetime
 from jinja2 import Template
 from dotenv import load_dotenv
-# from langchain.agents import load_tools
-# tool_names = [...]
-# tools = load_tools(tool_names)
 from langchain.llms.openai import OpenAI
 from langchain import LLMChain
 from langchain.schema import  Document
@@ -26,7 +25,7 @@ import os
 from food_scrapers import wolt_tool
 import json
 from langchain.tools import GooglePlacesTool
-
+import tiktoken
 
 # redis imports for cache
 
@@ -35,12 +34,8 @@ import langchain
 import redis
 
 
-
-# nltk.download('punkt')
 import subprocess
 
-# database_url = os.environ.get('DATABASE_URL')
-# import nltk
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 from langchain.llms import Replicate
@@ -66,7 +61,7 @@ class Agent():
         self.user_id = user_id
         self.session_id = session_id
         self.memory = None
-        self.thought_id_timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]  # Timestamp with millisecond precision
+        self.thought_id_timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
         self.llm = OpenAI(temperature=0.0,max_tokens = 1000, openai_api_key = self.OPENAI_API_KEY)
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
@@ -75,9 +70,9 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        # from langchain.cache import RedisCache
-        # from redis import Redis
-        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
+        from langchain.cache import RedisCache
+        from redis import Redis
+        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
 
     def set_user_session(self, user_id: str, session_id: str) -> None:
@@ -96,27 +91,72 @@ class Agent():
             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
             return pinecone.Index(index_name)
+
+
+
+    # create the length function
+    def tiktoken_len(self, text):
+        tokenizer = tiktoken.get_encoding('cl100k_base')
+        tokens = tokenizer.encode(
+            text,
+            disallowed_special=()
+        )
+        return len(tokens)
     class VectorDBInput(BaseModel):
         observation: str = Field(description="should be what we are inserting into the memory")
         namespace: str = Field(description="should be the namespace of the VectorDB")
-    @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
+
     def _update_memories(self, observation: str, namespace: str):
+
         """Update related characteristics, preferences or dislikes for a user."""
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
         memory = self.init_pinecone(index_name=self.index)
 
-        vector = self.get_ada_embedding(observation)
-        upsert_response = memory.upsert(
-            vectors=[
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=400,
+            chunk_overlap=20,
+            length_function=self.tiktoken_len,
+            separators=["\n\n", "\n", " ", ""]
+        )
+
+        # Split observation into chunks
+        record_texts = text_splitter.split_text(observation)
+        metadata = {
+            'thought_string': observation,
+            'user_id': self.user_id,
+            'source': "user_input",
+        }
+
+        # Create individual metadata dicts for each chunk
+        record_metadatas = [{
+            'chunk': j,
+            'text': text,
+            **metadata
+        } for j, text in enumerate(record_texts)]
+
+        vectors = []
+
+        # Get ada embedding for each chunk and create a vector
+        for record in record_metadatas:
+            vector = self.get_ada_embedding(record['text'])
+            vectors.append(
                 {
-                    'id': f"thought-{self.thought_id_timestamp}",
+                    'id': f"thought-{self.thought_id_timestamp}-{record['chunk']}",
                     'values': vector,
-                    'metadata':
-                        {"thought_string": observation, "user_id": self.user_id
-                         }
-                }],
+                    'metadata': {'text': record['text'], **record}
+                }
+            )
+
+        upsert_response = memory.upsert(
+            vectors=vectors,
             namespace=namespace,
         )
         return upsert_response
+
+
+    # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
+
 
     def _fetch_memories(self, observation: str, namespace:str) -> List[Document]:
         """Fetch related characteristics, preferences or dislikes for a user."""
@@ -239,6 +279,17 @@ class Agent():
         else:
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                filter={'user_id': {'$eq': self.user_id}},
+                namespace='GOAL'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.add_documents([Document(page_content=chain_result,
+                                              metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="GOAL")])
             end_time = time.time()
 
             execution_time = end_time - start_time
@@ -276,6 +327,17 @@ class Agent():
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             end_time = time.time()
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                filter={'user_id': {'$eq': self.user_id}},
+                namespace='RESULT'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.add_documents([Document(page_content=chain_result,
+                                              metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="RESULT")])
 
             execution_time = end_time - start_time
             print("Execution time: ", execution_time, " seconds")
@@ -305,6 +367,17 @@ class Agent():
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query).strip()
             print("RESULT IS ", chain_result)
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                filter={'user_id': {'$eq': self.user_id}},
+                namespace='GOAL'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.add_documents([Document(page_content=chain_result,
+                                              metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="GOAL")])
             return chain_result
 
     def sub_goal_generation(self, factors: dict, model_speed:str):
@@ -333,11 +406,20 @@ class Agent():
         else:
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run( prompt=complete_query).strip()
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                filter={'user_id': {'$eq': self.user_id}},
+                namespace='SUBGOAL'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.add_documents([Document(page_content=chain_result,
+                                              metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="SUBGOAL")])
             print("RESULT IS ", chain_result)
             return chain_result
-#use tool to insert into vectordb
-#use tool to pull from vector db
-#use tool to
+
     def extract_info(self, s):
         lines = s.split('\n')
         name = lines[0]
@@ -404,8 +486,6 @@ class Agent():
         print("HERE IS THE PROMPT", chain_result)
         import asyncio
         from food_scrapers import wolt_tool
-        # with ThreadPoolExecutor() as executor:
-        #     loop = asyncio.get_running_loop()
         output = await wolt_tool.main( zipcode, chain_result)
         return output
 
@@ -416,6 +496,7 @@ class Agent():
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """ 
+        {bu}
             Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
             1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
             Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
@@ -430,30 +511,109 @@ class Agent():
         print("HERE IS THE AGENT SUMMARY", agent_summary)
         print("HERE IS THE TEMPLATE", output)
         complete_query =  output
-        complete_query = PromptTemplate.from_template(complete_query)
+        complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
         if model_speed =='fast':
             output = self.replicate_llm(output)
             return output
         else:
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
-            chain_result = chain.run(prompt=complete_query).strip()
-            # json_data = json.dumps(chain_result)
-            # return json_data
+            summary_action = chain.run("bu").strip()
+            summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
+            summary_action = summary_action.split(":")[1].strip()
+            print(summary_action)
+            if 'goal' in summary_action.lower():
+                namespace_val= "GOAL"
+            elif 'preference' in summary_action.lower():
+                namespace_val = "PREFERENCE"
+            elif 'result' in summary_action.lower():
+                namespace_val = "RESULT"
+            elif 'subgoal' in summary_action.lower():
+                namespace_val = "SUBGOAL"
 
+            print("HERE IS THE NAMESPACE", namespace_val)
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                filter={'user_id': {'$eq': self.user_id}},
+                namespace=namespace_val
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}} # filter by user_id
+            print(retriever.get_relevant_documents(summary_action))
+            answer_response = retriever.get_relevant_documents(summary_action)
+            answer_response.sort(key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
+            # The most recent document is now the first element of the list.
+            most_recent_document = answer_response[0]
+            escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+            optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}
+             And append new value to the changed result in the format "Update_action": 'Goal changed", value: "Diet added", "summary": 
+             "The user is updating their goal to lose weight"""
 
-            # optimization_prompt = """Based on the query: {query} change and update appropriate of the following results: {{results}}
-            # And append new value in the format "Update_action": 'Goal changed", value: "Diet added", "summary": "The user is updating their goal to lose weight"""
-            # optimization_prompt = Template(optimization_prompt)
-            # results = current_user_state
-            # optimization_output = optimization_prompt.render( results=results)
-            # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
-            # review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+            optimization_prompt = Template(optimization_prompt)
+            optimization_output = optimization_prompt.render( results=escaped_content)
+            prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+            review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+            output = review_chain.run(query=summary_action).strip()
+            print("HERE IS THE OUTPUT", output)
+            json_data = json.dumps(output)
+            return json_data
             # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
             # final_output = overall_chain.run('bu').strip()
-            #
+            # print("HERE IS THE FINAL OUTPUT", final_output)
             # json_data = json.dumps(final_output)
             # return json_data
 
+
+
+
+
+
+
+            # chain_result = chain.run(prompt=complete_query).strip()
+            # json_data = json.dumps(chain_result)
+            # return json_data
+            # self._update_memories(observation="Man walks in a forest", namespace="test_namespace")
+            template = """
+            {summaries}
+            {question}
+            """
+
+            # embeddings = OpenAIEmbeddings()
+            # embeddings.embed_documents(["man walks in the forest", "horse walks in the field"])
+            from langchain.chains import RetrievalQAWithSourcesChain
+            from langchain.chains import RetrievalQA
+            # llm = OpenAIEmbeddings()
+
+            # from langchain.retrievers import TimeWeightedVectorStoreRetriever
+            # retriever = TimeWeightedVectorStoreRetriever(vectorstore=vectorstore, decay_rate=.0000000000000000000000001,
+            #                                              k=1)
+            # yesterday = datetime.now() - timedelta(days=1)
+            # #retriever.add_documents([Document(page_content="hello majmune", metadata={"last_accessed_at": yesterday,"text": "hello majmune",'user_id': self.user_id}, namespace="test_namespace")])
+            # # retriever.add_documents([Document(page_content="hello foo", metadata={ "text": "hello foo"} ,namespace="test_namespace")])
+            # print(retriever.get_relevant_documents("hello majmune"))
+            from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+            # qa_chain = load_qa_with_sources_chain(llm=self.llm, chain_type="stuff")
+
+            #this works
+            # from langchain.chains.question_answering import load_qa_chain
+            # qa_chain = load_qa_chain(self.llm, chain_type="stuff")
+            # qa = RetrievalQA(
+            #     combine_documents_chain=qa_chain,
+            #     retriever=retriever,
+            #     verbose=True,
+            # )
+            # #
+            # answer_response = qa.run("give me an answer in python dictionary format with the key of the result type and the value of the result action")
+            #
+            # print(answer_response)
+            # from operator import itemgetter
+            # answer_response.sort(key=lambda doc: doc.metadata['inserted_at'], reverse=True)
+            #
+            # # The most recent document is now the first element of the list.
+            # most_recent_document = answer_response[0]
+            # print(answer_response)
+            #above works until works
 
     def solution_evaluation_test(self):
         """Serves to update agent traits so that they can be used in summary"""
@@ -478,7 +638,7 @@ if __name__ == "__main__":
     agent = Agent()
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
-    # agent.voice_input("I need your help, I am alergic to peanuts ", current_user_state="""result 1 -Goal -  'health': 85, 'time': 75, 'cost': 50 ; result 2 - "sub_goals":"goal_name":"Portion Control","sub_goals":"name":"Vegetables","amount":50,"name":"Fruits","amount":50,"name":"Grains","amount":50,"name":"Proteins","amount":50,"goal_name":"Cuisine","sub_goals":"name":"Italian","amount":50,"name":"Mexican","amount":50,"name":"Indian","amount":50,"name":"Chinese","amount":50,"goal_name":"Macronutrients","sub_goals":"name":"Carbohydrates","amount":50,"name":"Fats","amount":50,"name":"Proteins","amount":50,"name":"Fiber","amount":50""", model_speed="slow")
-    # agent.solution_generation( {    'health': 85,
+    agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
+    # agent.goal_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
