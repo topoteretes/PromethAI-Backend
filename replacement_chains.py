@@ -282,7 +282,7 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                filter={'user_id': {'$eq': self.user_id}},
+                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -328,7 +328,7 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                filter={'user_id': {'$eq': self.user_id}},
+                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='RESULT'
             )
             from datetime import datetime
@@ -367,7 +367,7 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                filter={'user_id': {'$eq': self.user_id}},
+                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -406,7 +406,7 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                filter={'user_id': {'$eq': self.user_id}},
+                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='SUBGOAL'
             )
             from datetime import datetime
@@ -531,7 +531,7 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                filter={'user_id': {'$eq': self.user_id}},
+                # filter={'user_id': {'$eq': self.user_id}},
                 namespace=namespace_val
             )
             from datetime import datetime
@@ -541,7 +541,10 @@ class Agent():
             answer_response = retriever.get_relevant_documents(summary_action)
             answer_response.sort(key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
             # The most recent document is now the first element of the list.
-            most_recent_document = answer_response[0]
+            try:
+                most_recent_document = answer_response[0]
+            except IndexError:
+                return {"error": "No document found for this user. Make sure that a query is appropriate"}
             escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
             optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}
              And append new value to the changed result in the format "Update_action": 'Goal changed", value: "Diet added", "summary": 
