@@ -468,7 +468,7 @@ class Agent():
                 {% for factor, value in factors.items() %}
                 For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
                 {% endfor %}
-                Determine the type of food you would want to recommend to the user, that is commonly ordered online. It should be like burger or pizza or something you search on food delivery app. 
+                Determine the type of food you would want to recommend to the user, that is commonly ordered online. It should of type of food offered on a delivery app similar to burger or pizza, but it doesn't have to be that. 
                 The response should be very short
             """
 
@@ -483,7 +483,7 @@ class Agent():
         print("HERE IS THE PROMPT", chain_result)
         import asyncio
         from food_scrapers import wolt_tool
-        output = await wolt_tool.main( zipcode, chain_result)
+        output = await wolt_tool.main( zipcode=zipcode, prompt=chain_result)
         return output
 
 

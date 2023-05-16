@@ -15,7 +15,7 @@ async def enter_zipcode_and_press_enter(page, zipcode):
     await element.press("Enter")
 
 async def run(playwright, zipcode:str, prompt:str):
-    browser = await playwright.chromium.launch(headless=True)
+    browser = await playwright.chromium.launch(headless=False)
     context = await browser.new_context()
     page = await context.new_page()
 
@@ -49,7 +49,7 @@ async def run(playwright, zipcode:str, prompt:str):
 
 async def main(prompt:str, zipcode:str):
     async with async_playwright() as playwright:
-        result = await run(playwright, zipcode, prompt)
+        result = await run(playwright, zipcode=zipcode, prompt=prompt)
         print(result)
         return result
 import asyncio
