@@ -41,11 +41,11 @@ if os.path.exists(env_file):
     print("Talk to the AI!")
     # if API_ENABLED:
     # Run FastAPI application
-    start_api_server()
+    # start_api_server()
 
 else:
     secrets = fetch_secret("promethai-dev-backend-secretso-promethaijs-dotenv", "eu-west-1", ".env")
     if secrets:
         print(secrets)
     load_dotenv()
-    start_api_server()
+    # start_api_server()

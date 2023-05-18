@@ -161,6 +161,16 @@ async def generate_diet_sub_goal(request_data: Payload) -> dict:
     output = agent.sub_goal_generation(factors=json_payload["factors"], model_speed= json_payload["model_speed"])
     return JSONResponse(content={"response":json.loads(output)})
 
+
+
+@app.post("/voice-input", response_model=dict)
+async def voice_input(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    output = agent.voice_input(query=json_payload["query"], model_speed= json_payload["model_speed"])
+    return JSONResponse(content={"response":json.loads(output)})
+
 @app.get("/health")
 def health_check():
     return {"status": "OK"}
