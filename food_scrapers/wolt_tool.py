@@ -15,7 +15,7 @@ async def enter_zipcode_and_press_enter(page, zipcode):
     await element.press("Enter")
 
 async def run(playwright, zipcode:str, prompt:str):
-    browser = await playwright.chromium.launch(headless=False)
+    browser = await playwright.chromium.launch(headless=True)
     context = await browser.new_context()
     page = await context.new_page()
 
