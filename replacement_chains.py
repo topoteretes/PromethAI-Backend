@@ -345,7 +345,8 @@ class Agent():
         """Serves to optimize agent goals"""
 
         prompt = """
-              Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. It needs to be food and nutrition related. The cuisine should be one of the points, and goal should contain one or maximum two words
+              Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. It must be food and nutrition related. 
+              The cuisine should be one of the points, and goal should contain one or maximum three words. If user preferences don't override it, and if it includes time elemeent, it should be called "Time to make", if it descibes complexity of the dish, it should be  "Complexity", and if descibing food content it should be called "Macros"
               Answer a condensed JSON with no whitespaces. The structure should only contain a list of goals under field "goals". After the JSON output, don't explain or write anything.
             """
 
