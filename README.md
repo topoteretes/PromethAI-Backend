@@ -41,7 +41,7 @@ Here is what happens everytime the AI is queried by the user:
 4. `open .env` and set your OpenAI and Pinecone API, Google Maps API key and Replicate API token
 5. Run the script by launching a docker container with
 ```
-docker-compose build --build-arg API_ENABLED=True teenage-agi
+docker-compose build --build-arg  promethai
 ```
 6. Access the API by doing CURL requests, example: 
 ```
