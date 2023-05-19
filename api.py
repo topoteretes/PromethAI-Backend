@@ -90,7 +90,7 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.recipe_generation(factors_dict, model_speed="slow")
-    return JSONResponse(content={"response":{"recipes": json.loads(output)}});
+    return JSONResponse(content={"response":json.loads(output)});
 
 @app.post("/restaurant-request", response_model=dict)
 async def restaurant_request(request_data: Payload) -> dict:
