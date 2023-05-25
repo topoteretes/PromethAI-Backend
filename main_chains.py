@@ -1,5 +1,6 @@
 from langchain.prompts import PromptTemplate
 from concurrent.futures import ThreadPoolExecutor
+import functools
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
@@ -74,7 +75,23 @@ class Agent():
         from redis import Redis
         langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
+    def post_execution(func_to_execute):
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(self, *args, **kwargs):
+                result = func(self, *args, **kwargs)
 
+                # extracting the model_speed argument from kwargs
+                model_speed = kwargs.get('model_speed', 'slow')
+                print("tu smo")
+                # call the func_to_execute function
+                getattr(self, func_to_execute.__name__)(model_speed)
+
+                return result
+
+            return wrapper
+
+        return decorator
     def set_user_session(self, user_id: str, session_id: str) -> None:
         self.user_id = user_id
         self.session_id = session_id
@@ -176,11 +193,12 @@ class Agent():
             + "Do not embellish."
             + "\n\nSummary: "
         )
+        print("Computing Agent Summary")
         self.init_pinecone(index_name=self.index)
         # The agent seeks to think about their core characteristics.
-        relevant_characteristics = self._fetch_memories(f"Users core characteristics", namespace="TRAITS")
-        relevant_preferences = self._fetch_memories(f"Users core preferences", namespace="PREFERENCES")
-        relevant_dislikes = self._fetch_memories(f"Users core dislikes", namespace="DISLIKES")
+        relevant_characteristics = self._fetch_memories(f"Users core characteristics", namespace="PREFERENCE")
+        relevant_preferences = self._fetch_memories(f"Users core preferences", namespace="PREFERENCE")
+        relevant_dislikes = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCE")
         if model_speed =='fast':
             output = self.replicate_llm(prompt)
             return output
@@ -199,10 +217,10 @@ class Agent():
             Do not embellish.
             Summary: """
         self.init_pinecone(index_name=self.index)
-        past_preference = self._fetch_memories(f"Users core preferences", namespace="PREFERENCES")
+        past_preference = self._fetch_memories(f"Users core preferences", namespace="PREFERENCE")
         prompt = PromptTemplate(input_variables=["name", "past_preference", "preferences"], template=prompt)
         prompt = prompt.format(name=self.user_id, past_preference= past_preference, preferences=preferences)
-        return self._update_memories(prompt, namespace="PREFERENCES")
+        return self._update_memories(prompt, namespace="PREFERENCE")
 
     def update_agent_taboos(self, dislikes:str):
         """Serves to update agents taboos so that they can be used in summary"""
@@ -211,10 +229,10 @@ class Agent():
             Do not embellish.
             Summary: """
         self.init_pinecone(index_name=self.index)
-        past_dislikes = self._fetch_memories(f"Users core dislikes", namespace="DISLIKES")
+        past_dislikes = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCE")
         prompt = PromptTemplate(input_variables=["name", "past_dislikes", "dislikes"], template=prompt)
         prompt = prompt.format(name=self.user_id, past_dislikes= past_dislikes, dislikes=dislikes)
-        return self._update_memories(prompt, namespace="DISLIKES")
+        return self._update_memories(prompt, namespace="PREFERENCE")
 
 
     def update_agent_traits(self, traits:str):
@@ -224,10 +242,10 @@ class Agent():
             Do not embellish.
             Summary: """
         self.init_pinecone(index_name=self.index)
-        past_traits = self._fetch_memories(f"Users core dislikes", namespace="TRAITS")
+        past_traits = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCE")
         prompt = PromptTemplate(input_variables=["name", "past_traits", "traits"], template=prompt)
         prompt = prompt.format(name=self.user_id, past_traits= past_traits, traits=traits)
-        return self._update_memories(prompt, namespace="TRAITS")
+        return self._update_memories(prompt, namespace="PREFERENCE")
 
 
     def update_agent_summary(self):
@@ -243,12 +261,12 @@ class Agent():
         complete_query = PromptTemplate.from_template(complete_query)
         print("HERE IS THE COMPLETE QUERY", complete_query)
         from heuristic_experience_orchestrator.task_identification import TaskIdentificationChain
-        chain = TaskIdentificationChain.from_llm(llm=self.llm, task_description="none",  value="Decomposition", verbose=self.verbose)
+        chain = TaskIdentificationChain.from_llm(llm=self.llm,  value="Decomposition", verbose=self.verbose)
 
         chain_output = chain.run(name= self.user_id).strip()
         return chain_output
 
-
+    @post_execution(_compute_agent_summary)
     def solution_generation(self, factors:dict, model_speed:str):
         """Generates a solution choice"""
         import time
@@ -282,7 +300,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -340,7 +357,7 @@ class Agent():
             execution_time = end_time - start_time
             print("Execution time: ", execution_time, " seconds")
             return chain_result
-
+    @post_execution(_compute_agent_summary)
     def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
 
@@ -368,7 +385,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -382,11 +398,10 @@ class Agent():
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """
-            Base
-            d on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
+            Based on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
              provide a mind map representation of the secondary nodes that can be used to narrow down the choice better.It needs to be food and nutrition related. Each of the results should have 4 sub nodes.
             Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
-            Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
+            If there is a subgoal, every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
             After the JSON output, don't explain or write anything
             """
 
@@ -498,8 +513,9 @@ class Agent():
             Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
             1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
             Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
-            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
-            Make sure to include the factors in the summary if they are provided
+            Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal or a goal items under field "sub_goals" or "goals".
+            If there is a subgoal it should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
+            After the JSON output, don't explain or write anything
             """
 
         self.init_pinecone(index_name=self.index)
