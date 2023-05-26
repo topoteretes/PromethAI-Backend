@@ -79,6 +79,7 @@ class Agent():
         def decorator(func):
             @functools.wraps(func)
             def wrapper(self, *args, **kwargs):
+                print("tu smo")
                 result = func(self, *args, **kwargs)
 
                 # extracting the model_speed argument from kwargs
@@ -398,10 +399,11 @@ class Agent():
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """
-            Based on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
+            Base
+            d on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %} 
              provide a mind map representation of the secondary nodes that can be used to narrow down the choice better.It needs to be food and nutrition related. Each of the results should have 4 sub nodes.
             Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
-            If there is a subgoal, every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
+            Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
             After the JSON output, don't explain or write anything
             """
 
@@ -513,9 +515,8 @@ class Agent():
             Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
             1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
             Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
-            Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal or a goal items under field "sub_goals" or "goals".
-            If there is a subgoal it should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
-            After the JSON output, don't explain or write anything
+            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
+            Make sure to include the factors in the summary if they are provided
             """
 
         self.init_pinecone(index_name=self.index)
@@ -564,8 +565,9 @@ class Agent():
                 return {"error": "No document found for this user. Make sure that a query is appropriate"}
             escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
             optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}
-             And append new value to the changed result in the format "Update_action": 'Goal changed", value: "Diet added", "summary": 
-             "The user is updating their goal to lose weight"""
+            Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
+            Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.  
+            After the JSON output, don't explain or write anything:"""
 
             optimization_prompt = Template(optimization_prompt)
             optimization_output = optimization_prompt.render( results=escaped_content)
