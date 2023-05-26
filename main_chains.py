@@ -575,8 +575,7 @@ class Agent():
             review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
             output = review_chain.run(query=summary_action).strip()
             print("HERE IS THE OUTPUT", output)
-            json_data = json.dumps(output)
-            return json_data
+            return output
             # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
             # final_output = overall_chain.run('bu').strip()
             # print("HERE IS THE FINAL OUTPUT", final_output)
