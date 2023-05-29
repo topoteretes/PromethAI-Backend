@@ -12,7 +12,6 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 import openai
 from pydantic import BaseModel, Field
 import re
-import datetime
 from jinja2 import Template
 from dotenv import load_dotenv
 from langchain.llms.openai import OpenAI
@@ -48,7 +47,7 @@ import os
 
 class Agent():
     load_dotenv()
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-3.5-turbo"
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4"
     GPLACES_API_KEY = os.getenv("GPLACES_API_KEY", "")
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -62,7 +61,7 @@ class Agent():
         self.user_id = user_id
         self.session_id = session_id
         self.memory = None
-        self.thought_id_timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
+        self.thought_id_timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
         self.llm = OpenAI(temperature=0.0,max_tokens = 1000, openai_api_key = self.OPENAI_API_KEY)
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
@@ -71,9 +70,9 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        from langchain.cache import RedisCache
-        from redis import Redis
-        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
+        # from langchain.cache import RedisCache
+        # from redis import Redis
+        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
 
     def set_user_session(self, user_id: str, session_id: str) -> None:
@@ -111,49 +110,18 @@ class Agent():
 
         """Update related characteristics, preferences or dislikes for a user."""
         from langchain.text_splitter import RecursiveCharacterTextSplitter
-        memory = self.init_pinecone(index_name=self.index)
-
-
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=400,
-            chunk_overlap=20,
-            length_function=self.tiktoken_len,
-            separators=["\n\n", "\n", " ", ""]
+        self.init_pinecone(index_name=self.index)
+        vectorstore: Pinecone = Pinecone.from_existing_index(
+            index_name=self.index,
+            embedding=OpenAIEmbeddings(),
+            namespace=namespace
         )
+        from datetime import datetime
+        retriever = vectorstore.as_retriever()
+        retriever.add_documents([Document(page_content=observation,
+                                          metadata={'inserted_at': datetime.now(), "text": observation,
+                                                    'user_id': self.user_id}, namespace=namespace)])
 
-        # Split observation into chunks
-        record_texts = text_splitter.split_text(observation)
-        metadata = {
-            'thought_string': observation,
-            'user_id': self.user_id,
-            'source': "user_input",
-        }
-
-        # Create individual metadata dicts for each chunk
-        record_metadatas = [{
-            'chunk': j,
-            'text': text,
-            **metadata
-        } for j, text in enumerate(record_texts)]
-
-        vectors = []
-
-        # Get ada embedding for each chunk and create a vector
-        for record in record_metadatas:
-            vector = self.get_ada_embedding(record['text'])
-            vectors.append(
-                {
-                    'id': f"thought-{self.thought_id_timestamp}-{record['chunk']}",
-                    'values': vector,
-                    'metadata': {'text': record['text'], **record}
-                }
-            )
-
-        upsert_response = memory.upsert(
-            vectors=vectors,
-            namespace=namespace,
-        )
-        return upsert_response
 
 
     # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
@@ -161,17 +129,28 @@ class Agent():
 
     def _fetch_memories(self, observation: str, namespace:str) -> List[Document]:
         """Fetch related characteristics, preferences or dislikes for a user."""
-        query_embedding = self.get_ada_embedding(observation)
-        memory = self.init_pinecone(index_name=self.index)
-        memory.query(query_embedding, top_k=1, include_metadata=True, namespace=namespace,
-                          filter={'user_id': {'$eq': self.user_id}})
-    #     return self.memory_retriever.get_relevant_documents(observation)
+
+        self.init_pinecone(index_name=self.index)
+        vectorstore: Pinecone = Pinecone.from_existing_index(
+            index_name=self.index,
+            embedding=OpenAIEmbeddings(),
+            namespace=namespace
+        )
+        retriever = vectorstore.as_retriever()
+        retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}
+        answer_response= retriever.get_relevant_documents(observation)
+
+        answer_response.sort(key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min,
+            reverse=True)
+        answer_response = answer_response[0]
+        return answer_response
+
+
     def _compute_agent_summary(self, model_speed:str):
         """Computes summary for a person"""
         prompt = PromptTemplate.from_template(
             "How would you summarize {name}'s core characteristics given the"
             + " following statements:\n"
-            + "{relevant_characteristics}"
             + "{relevant_preferences}"
             + "{relevant_dislikes}"
             + "Do not embellish."
@@ -179,16 +158,17 @@ class Agent():
         )
         self.init_pinecone(index_name=self.index)
         # The agent seeks to think about their core characteristics.
-        relevant_characteristics = self._fetch_memories(f"Users core characteristics", namespace="TRAITS")
         relevant_preferences = self._fetch_memories(f"Users core preferences", namespace="PREFERENCES")
-        relevant_dislikes = self._fetch_memories(f"Users core dislikes", namespace="DISLIKES")
+        relevant_dislikes = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCES")
+        print(relevant_dislikes)
+        print(relevant_preferences)
         if model_speed =='fast':
             output = self.replicate_llm(prompt)
             return output
 
         else:
             chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
-            return chain.run(name= self.user_id, relevant_characteristics=relevant_characteristics, relevant_preferences=relevant_preferences, relevant_dislikes=relevant_dislikes).strip()
+            return chain.run(name= self.user_id, relevant_preferences=relevant_preferences.page_content, relevant_dislikes=relevant_dislikes.page_content).strip()
 
 
 
@@ -202,20 +182,24 @@ class Agent():
         self.init_pinecone(index_name=self.index)
         past_preference = self._fetch_memories(f"Users core preferences", namespace="PREFERENCES")
         prompt = PromptTemplate(input_variables=["name", "past_preference", "preferences"], template=prompt)
-        prompt = prompt.format(name=self.user_id, past_preference= past_preference, preferences=preferences)
-        return self._update_memories(prompt, namespace="PREFERENCES")
+        # prompt = prompt.format(name=self.user_id, past_preference= past_preference, preferences=preferences)
+        chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
+        chain_result = chain.run(prompt=prompt,  past_preference= past_preference, preferences=preferences, name=self.user_id).strip()
+        return self._update_memories(chain_result, namespace="PREFERENCES")
 
     def update_agent_taboos(self, dislikes:str):
         """Serves to update agents taboos so that they can be used in summary"""
         prompt =""" The {name} has following {past_dislikes} and the new {dislikes}
-                Update user taboos and return a list of taboos
+                Update user taboos and return a list of dislikes
             Do not embellish.
             Summary: """
         self.init_pinecone(index_name=self.index)
-        past_dislikes = self._fetch_memories(f"Users core dislikes", namespace="DISLIKES")
+        past_dislikes = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCES")
         prompt = PromptTemplate(input_variables=["name", "past_dislikes", "dislikes"], template=prompt)
-        prompt = prompt.format(name=self.user_id, past_dislikes= past_dislikes, dislikes=dislikes)
-        return self._update_memories(prompt, namespace="DISLIKES")
+        # prompt = prompt.format(name=self.user_id, past_dislikes= past_dislikes, dislikes=dislikes)
+        chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
+        chain_result = chain.run(prompt=prompt, name=self.user_id, past_dislikes= past_dislikes, dislikes=dislikes).strip()
+        return self._update_memories(chain_result, namespace="PREFERENCES")
 
 
     def update_agent_traits(self, traits:str):
@@ -225,15 +209,16 @@ class Agent():
             Do not embellish.
             Summary: """
         self.init_pinecone(index_name=self.index)
-        past_traits = self._fetch_memories(f"Users core dislikes", namespace="TRAITS")
+        past_traits = self._fetch_memories(f"Users core dislikes", namespace="PREFERENCES")
         prompt = PromptTemplate(input_variables=["name", "past_traits", "traits"], template=prompt)
-        prompt = prompt.format(name=self.user_id, past_traits= past_traits, traits=traits)
-        return self._update_memories(prompt, namespace="TRAITS")
+        chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
+        chain_result = chain.run(prompt=prompt, past_traits= past_traits, traits=traits,name=self.user_id).strip()
+        return self._update_memories(chain_result, namespace="PREFERENCES")
 
 
-    def update_agent_summary(self):
+    def update_agent_summary(self, model_speed):
         """Serves to update agent traits so that they can be used in summary"""
-        summary = self._compute_agent_summary()
+        summary = self._compute_agent_summary(model_speed=model_speed)
         return self._update_memories(summary, namespace="SUMMARY")
 
     def task_identification(self, goals:str):
@@ -340,6 +325,46 @@ class Agent():
             print("Execution time: ", execution_time, " seconds")
             return chain_result
 
+    def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
+        """Serves to generate agent goals and subgoals based on a prompt"""
+
+        json_example = {"prompt":prompt,"tree":[{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}],"preference":[]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}],"preference":[]}],"preference":["quick"]}]}
+        json_str = str(json_example)
+        json_str = json_str.replace("{", "{{").replace("}", "}}")
+        prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are 
+        relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
+         Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement. 
+         For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
+         Answer a condensed JSON in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
+        """
+
+        self.init_pinecone(index_name=self.index)
+        agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        template = Template(prompt_template)
+        output = template.render(prompt_str = prompt, json_str=json_str)
+        complete_query =  output
+        print("HERE IS THE COMPLETE QUERY", complete_query)
+        complete_query = PromptTemplate.from_template(complete_query)
+
+        if model_speed =='fast':
+            output = self.replicate_llm(output)
+            json_data = json.dumps(output)
+            return json_data
+        else:
+            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+            chain_result =  chain.run(prompt=complete_query, name=self.user_id)
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                namespace='GOAL'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            retriever.add_documents([Document(page_content=chain_result,
+                                            metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="GOAL")])
+            return chain_result
+
     async def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
 
@@ -367,7 +392,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -406,7 +430,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='SUBGOAL'
             )
             from datetime import datetime
@@ -531,10 +554,9 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace=namespace_val
             )
-            from datetime import datetime
+
             retriever = vectorstore.as_retriever()
             retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}} # filter by user_id
             print(retriever.get_relevant_documents(summary_action))
@@ -632,13 +654,24 @@ class Agent():
     # • JWST took the very first pictures of a planet outside of our own solar system. These distant worlds are called "exoplanets." Exo means "from outside."
     # These discoveries can spark a child's imagination about the infinite wonders of the universe."""
     # checker_chain.run(text)
+    def _retrieve_summary(self):
+        """Serves to retrieve agent summary"""
+        self.init_pinecone(index_name=self.index)
+        result = self._fetch_memories('Users core summary', "SUMMARY")
+        return result
 
 
 if __name__ == "__main__":
     agent = Agent()
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
-    agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
+    # agent.update_agent_traits("His personality is greedy")
+    # agent.update_agent_preferences("Alergic to corn")
+    # agent.update_agent_taboos("Dislike is brocolli")
+    #agent.update_agent_summary(model_speed="slow")
+    result = agent.prompt_to_choose_meal_tree(" I’d like a quick veggie meal under 25$ near me.", model_speed="slow")
+    print(result)
+    # agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
     # agent.goal_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
