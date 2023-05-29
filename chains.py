@@ -26,6 +26,7 @@ from food_scrapers import wolt_tool
 import json
 from langchain.tools import GooglePlacesTool
 import tiktoken
+import asyncio
 
 # redis imports for cache
 
@@ -339,7 +340,7 @@ class Agent():
             print("Execution time: ", execution_time, " seconds")
             return chain_result
 
-    def goal_generation(self, factors: dict, model_speed:str):
+    async def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
 
         prompt = """
@@ -376,7 +377,7 @@ class Agent():
                                                         'user_id': self.user_id}, namespace="GOAL")])
             return chain_result
 
-    def sub_goal_generation(self, factors: dict, model_speed:str):
+    async def sub_goal_generation(self, factors: dict, model_speed:str):
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """
@@ -428,7 +429,7 @@ class Agent():
             'phone': phone,
             'website': website,
         }
-    def restaurant_generation(self, factors: dict, model_speed:str):
+    async def restaurant_generation(self, factors: dict, model_speed:str):
         """Serves to suggest a restaurant to the agent"""
 
         prompt = """
@@ -488,7 +489,7 @@ class Agent():
 
 
 
-    def voice_input(self, query: str, model_speed:str):
+    async def voice_input(self, query: str, model_speed:str):
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """ 
