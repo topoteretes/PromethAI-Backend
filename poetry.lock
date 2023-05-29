@@ -632,20 +632,6 @@ numpy = "*"
 requests = "*"
 
 [[package]]
-name = "gptrim"
-version = "0.1.1"
-description = "Reduce the size of GPT inputs by 40-60% without losing most of the information."
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "gptrim-0.1.1-py3-none-any.whl", hash = "sha256:ec9830a3e8156314abe32a588fd683d52e16347b8e0e771d60bb41300ba9feaa"},
-]
-
-[package.dependencies]
-nltk = "3.8.1"
-
-[[package]]
 name = "greenlet"
 version = "2.0.2"
 description = "Lightweight in-process concurrent programming"
@@ -820,14 +806,14 @@ files = [
 
 [[package]]
 name = "langchain"
-version = "0.0.183"
+version = "0.0.184"
 description = "Building applications with LLMs through composability"
 category = "main"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "langchain-0.0.183-py3-none-any.whl", hash = "sha256:d98e56bf5189599f6500d59908f85b5a6cdf65545e34b41165c7c98beb1ccd0e"},
-    {file = "langchain-0.0.183.tar.gz", hash = "sha256:ec9712ae9d11b14f02e703f123d9493f82d49fd80e86df4ff4014df2af06aeca"},
+    {file = "langchain-0.0.184-py3-none-any.whl", hash = "sha256:819513b3acbd32ad24a55e48e0cabc8f60e09bb4293ca5b655d18e6d24353940"},
+    {file = "langchain-0.0.184.tar.gz", hash = "sha256:e02a73b5cac889e761fc11c12297d4479a9727287c51a251ca2669a8a79ae348"},
 ]
 
 [package.dependencies]
@@ -1175,14 +1161,14 @@ files = [
 
 [[package]]
 name = "openai"
-version = "0.27.2"
+version = "0.27.7"
 description = "Python client library for the OpenAI API"
 category = "main"
 optional = false
 python-versions = ">=3.7.1"
 files = [
-    {file = "openai-0.27.2-py3-none-any.whl", hash = "sha256:6df674cf257e9e0504f1fd191c333d3f6a2442b13218d0eccf06230eb24d320e"},
-    {file = "openai-0.27.2.tar.gz", hash = "sha256:5869fdfa34b0ec66c39afa22f4a0fb83a135dff81f6505f52834c6ab3113f762"},
+    {file = "openai-0.27.7-py3-none-any.whl", hash = "sha256:788fb7fa85bf7caac6c1ed7eea5984254a1bdaf09ef485acf0e5718c8b2dc25a"},
+    {file = "openai-0.27.7.tar.gz", hash = "sha256:bca95fd4c3054ef38924def096396122130454442ec52005915ecf8269626b1d"},
 ]
 
 [package.dependencies]
@@ -2251,4 +2237,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d6ecba7a7213db56c9ab1746abe86c0587324d1399901c026c82407d66e60cf9"
+content-hash = "6d989fb6be890bbd41d05b7c8b4fca43addb680e0887a9027937aeeaedfbd758"

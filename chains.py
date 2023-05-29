@@ -243,7 +243,7 @@ class Agent():
         complete_query = PromptTemplate.from_template(complete_query)
         print("HERE IS THE COMPLETE QUERY", complete_query)
         from heuristic_experience_orchestrator.task_identification import TaskIdentificationChain
-        chain = TaskIdentificationChain.from_llm(llm=self.llm, task_description="none",  value="Decomposition", verbose=self.verbose)
+        chain = TaskIdentificationChain.from_llm(llm=self.llm,  value="Decomposition", verbose=self.verbose)
 
         chain_output = chain.run(name= self.user_id).strip()
         return chain_output
@@ -282,7 +282,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='GOAL'
             )
             from datetime import datetime
@@ -328,7 +327,6 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                # filter={'user_id': {'$eq': self.user_id}},
                 namespace='RESULT'
             )
             from datetime import datetime
