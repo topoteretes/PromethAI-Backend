@@ -63,7 +63,7 @@ class Agent():
         self.memory = None
         self.thought_id_timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
-        self.llm = OpenAI(temperature=0.0,max_tokens = 1000, openai_api_key = self.OPENAI_API_KEY)
+        self.llm = OpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY)
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
         self.verbose: bool = True
         self.openai_model = "gpt-3.5-turbo"
@@ -142,7 +142,10 @@ class Agent():
 
         answer_response.sort(key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min,
             reverse=True)
-        answer_response = answer_response[0]
+        try:
+            answer_response = answer_response[0]
+        except IndexError:
+            return {"error": "No document found for this user. Make sure that a query is appropriate"}
         return answer_response
 
 
@@ -335,11 +338,11 @@ class Agent():
         relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
          Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement. 
          For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
-         Answer a condensed JSON in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
+         Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,  in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
         """
 
         self.init_pinecone(index_name=self.index)
-        agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt_template)
         output = template.render(prompt_str = prompt, json_str=json_str)
         complete_query =  output
@@ -352,7 +355,8 @@ class Agent():
             return json_data
         else:
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
-            chain_result =  chain.run(prompt=complete_query, name=self.user_id)
+            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+            print("HERE IS THE CHAIN RESULT", chain_result)
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
@@ -363,7 +367,43 @@ class Agent():
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
+            # chain_result=str(chain_result)
+            chain_result = json.dumps(chain_result)
             return chain_result
+
+    def prompt_to_update_meal_tree(self,  category:str, from_:str, to_:str, model_speed:str):
+        self.init_pinecone(index_name=self.index)
+        vectorstore: Pinecone = Pinecone.from_existing_index(
+            index_name=self.index,
+            embedding=OpenAIEmbeddings(),
+            namespace="GOAL"
+        )
+
+        retriever = vectorstore.as_retriever()
+        retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}  # filter by user_id
+        print(retriever.get_relevant_documents(category))
+        answer_response = retriever.get_relevant_documents(category)
+        answer_response.sort(
+            key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min,
+            reverse=True)
+        # The most recent document is now the first element of the list.
+        try:
+            most_recent_document = answer_response[0]
+        except IndexError:
+            return {"error": "No document found for this user. Make sure that a query is appropriate"}
+        escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+        optimization_prompt = """Change the category: {{category}} based on {{from_}} to {{to_}}  change and update appropriate of the following original: {{results}}
+         """
+
+        optimization_prompt = Template(optimization_prompt)
+        optimization_output = optimization_prompt.render(category=category, from_=from_, to_=to_,  results=escaped_content)
+        complete_query = PromptTemplate.from_template(optimization_output)
+        # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+        review_chain = LLMChain(llm=self.llm, prompt=complete_query)
+        review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
+        print("HERE IS THE OUTPUT", review_chain_result)
+        json_data = json.dumps(review_chain_result)
+        return json_data
 
     async def goal_generation(self, factors: dict, model_speed:str):
         """Serves to optimize agent goals"""
