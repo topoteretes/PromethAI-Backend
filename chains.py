@@ -70,9 +70,9 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        from langchain.cache import RedisCache
-        from redis import Redis
-        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
+        # from langchain.cache import RedisCache
+        # from redis import Redis
+        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
 
     def set_user_session(self, user_id: str, session_id: str) -> None:
@@ -105,9 +105,8 @@ class Agent():
     class VectorDBInput(BaseModel):
         observation: str = Field(description="should be what we are inserting into the memory")
         namespace: str = Field(description="should be the namespace of the VectorDB")
-
-    def _update_memories(self, observation: str, namespace: str):
-
+    @tool("update_memories", return_direct=True)
+    def _update_memories(self, observation: str, namespace: str)-> None:
         """Update related characteristics, preferences or dislikes for a user."""
         from langchain.text_splitter import RecursiveCharacterTextSplitter
         self.init_pinecone(index_name=self.index)
@@ -126,7 +125,7 @@ class Agent():
 
     # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
 
-
+    @tool("fetch_memories", return_direct=True)
     def _fetch_memories(self, observation: str, namespace:str) -> List[Document]:
         """Fetch related characteristics, preferences or dislikes for a user."""
 
@@ -418,8 +417,6 @@ class Agent():
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt)
         output = template.render(factors=factors)
-        print("HERE IS THE AGENT SUMMARY", agent_summary)
-        print("HERE IS THE TEMPLATE", output)
         complete_query = str(agent_summary) + output
         complete_query = PromptTemplate.from_template(complete_query)
         if model_speed =='fast':
@@ -428,7 +425,6 @@ class Agent():
         else:
             chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query).strip()
-            print("RESULT IS ", chain_result)
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
@@ -508,7 +504,6 @@ class Agent():
         template = Template(prompt)
         output = template.render(factors=factors)
         complete_query = str(agent_summary) + output
-        # print('HERE IS THE COMPLETE QUERY', complete_query)
         complete_query = PromptTemplate.from_template(complete_query)
         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
         chain_result = chain.run(prompt=complete_query).strip()
@@ -543,8 +538,6 @@ class Agent():
         complete_query = PromptTemplate.from_template(complete_query)
         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
         chain_result = chain.run(prompt=complete_query).strip()
-        print("HERE IS THE PROMPT", chain_result)
-        import asyncio
         from food_scrapers import wolt_tool
         output = await wolt_tool.main( zipcode=zipcode, prompt=chain_result)
         return output
@@ -552,7 +545,7 @@ class Agent():
 
 
 
-    async def voice_input(self, query: str, model_speed:str):
+    def voice_input(self, query: str, model_speed:str):
         """Serves to generate sub goals for the user and drill down into it"""
 
         prompt = """ 
@@ -588,9 +581,7 @@ class Agent():
             elif 'result' in summary_action.lower():
                 namespace_val = "RESULT"
             elif 'subgoal' in summary_action.lower():
-                namespace_val = "SUBGOAL"
-
-            print("HERE IS THE NAMESPACE", namespace_val)
+                namespace_val = "GOAL"
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
@@ -608,16 +599,12 @@ class Agent():
             except IndexError:
                 return {"error": "No document found for this user. Make sure that a query is appropriate"}
             escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
-            optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}
-             And append new value to the changed result in the format "Update_action": 'Goal changed", value: "Diet added", "summary": 
-             "The user is updating their goal to lose weight"""
-
+            optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}"""
             optimization_prompt = Template(optimization_prompt)
             optimization_output = optimization_prompt.render( results=escaped_content)
             prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
             review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
             output = review_chain.run(query=summary_action).strip()
-            print("HERE IS THE OUTPUT", output)
             json_data = json.dumps(output)
             return json_data
             # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
@@ -625,21 +612,83 @@ class Agent():
             # print("HERE IS THE FINAL OUTPUT", final_output)
             # json_data = json.dumps(final_output)
             # return json_data
-
-
-
-
-
-
+            #
+            # def voice_input_imp(self, query: str, model_speed: str):
+            #     """Serves to generate sub goals for the user and drill down into it"""
+            #
+            #     prompt = """
+            #     {bu}
+            #         Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
+            #         1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
+            #         Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
+            #         with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
+            #         Make sure to include the factors in the summary if they are provided
+            #         """
+            #     from langchain.agents import load_tools
+            #     tools = load_tools(["serpapi", "llm-math", "fetch_memories", "update_memories"], llm=self.llm)
+            #     agent = initialize_agent(tools, self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+            #     self.init_pinecone(index_name=self.index)
+            #     agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+            #     template = Template(prompt)
+            #     output = template.render(query=query)
+            #     print("HERE IS THE AGENT SUMMARY", agent_summary)
+            #     print("HERE IS THE TEMPLATE", output)
+            #     complete_query = output
+            #     complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
+            #     if model_speed == 'fast':
+            #         output = self.replicate_llm(output)
+            #         return output
+            #     else:
+            #         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+            #         summary_action = chain.run("bu").strip()
+            #         summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
+            #         summary_action = summary_action.split(":")[1].strip()
+            #         print(summary_action)
+            #         if 'goal' in summary_action.lower():
+            #             namespace_val = "GOAL"
+            #         elif 'preference' in summary_action.lower():
+            #             namespace_val = "PREFERENCE"
+            #         elif 'result' in summary_action.lower():
+            #             namespace_val = "RESULT"
+            #         elif 'subgoal' in summary_action.lower():
+            #             namespace_val = "GOAL"
+            #         vectorstore: Pinecone = Pinecone.from_existing_index(
+            #             index_name=self.index,
+            #             embedding=OpenAIEmbeddings(),
+            #             namespace=namespace_val
+            #         )
+            #
+            #         retriever = vectorstore.as_retriever()
+            #         retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}  # filter by user_id
+            #         print(retriever.get_relevant_documents(summary_action))
+            #         answer_response = retriever.get_relevant_documents(summary_action)
+            #         answer_response.sort(key=lambda doc: doc.metadata.get(
+            #             'inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
+            #         # The most recent document is now the first element of the list.
+            #         try:
+            #             most_recent_document = answer_response[0]
+            #         except IndexError:
+            #             return {"error": "No document found for this user. Make sure that a query is appropriate"}
+            #         escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+            #         optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}"""
+            #         optimization_prompt = Template(optimization_prompt)
+            #         optimization_output = optimization_prompt.render(results=escaped_content)
+            #         prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+            #         review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+            #         output = review_chain.run(query=summary_action).strip()
+            #         json_data = json.dumps(output)
+            #         return json_data
+            #
+            #
 
             # chain_result = chain.run(prompt=complete_query).strip()
             # json_data = json.dumps(chain_result)
             # return json_data
             # self._update_memories(observation="Man walks in a forest", namespace="test_namespace")
-            template = """
-            {summaries}
-            {question}
-            """
+            # template = """
+            # {summaries}
+            # {question}
+            # """
 
             # embeddings = OpenAIEmbeddings()
             # embeddings.embed_documents(["man walks in the forest", "horse walks in the field"])
@@ -676,7 +725,16 @@ class Agent():
             # most_recent_document = answer_response[0]
             # print(answer_response)
             #above works until works
-
+    def simple_agent_chain(self):
+        """To test simple agent and use intermediary steps"""
+        from langchain.agents import load_tools
+        tools = load_tools(["serpapi", "llm-math"], llm=self.llm)
+        agent = initialize_agent(tools, self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True,
+                                 return_intermediate_steps=True)
+        response = agent(
+            {"input": "Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?"})
+        print(response["intermediate_steps"])
+        return
     def solution_evaluation_test(self):
         """Serves to update agent traits so that they can be used in summary"""
         return
@@ -709,9 +767,10 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
-    result = agent.prompt_to_choose_meal_tree(" I’d like a quick veggie meal under 25$ near me.", model_speed="slow")
-    print(result)
-    # agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
+    # agent.simple_agent_chain()
+    #result = agent.prompt_to_choose_meal_tree(" I’d like a quick veggie meal under 25$ near me.", model_speed="slow")
+    #print(result)
+    agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
     # agent.goal_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")

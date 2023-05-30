@@ -601,6 +601,20 @@ files = [
 ]
 
 [[package]]
+name = "google-search-results"
+version = "2.4.2"
+description = "Scrape and search localized results from Google, Bing, Baidu, Yahoo, Yandex, Ebay, Homedepot, youtube at scale using SerpApi.com"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "google_search_results-2.4.2.tar.gz", hash = "sha256:603a30ecae2af8e600b22635757a6df275dad4b934f975e67878ccd640b78245"},
+]
+
+[package.dependencies]
+requests = "*"
+
+[[package]]
 name = "googlemaps"
 version = "4.10.0"
 description = "Python client library for Google Maps Platform"
@@ -2237,4 +2251,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6d989fb6be890bbd41d05b7c8b4fca43addb680e0887a9027937aeeaedfbd758"
+content-hash = "d2317617417609bcf829a436d9bb6d88c6d14ec3078f126a65c15a36cd6d1ccc"
