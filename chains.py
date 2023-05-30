@@ -70,9 +70,9 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        # from langchain.cache import RedisCache
-        # from redis import Redis
-        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
+        from langchain.cache import RedisCache
+        from redis import Redis
+        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
 
     def set_user_session(self, user_id: str, session_id: str) -> None:
