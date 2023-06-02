@@ -284,13 +284,13 @@ class Agent():
             print("Execution time: ", execution_time, " seconds")
             json_data = json.dumps(chain_result)
             return json_data
-    def recipe_generation(self, factors:dict, model_speed:str):
+    def recipe_generation(self, factors:dict, prompt:str, model_speed:str):
         """Generates a recipe solution in json"""
         import time
 
         start_time = time.time()
         prompt = """
-                Help me choose what recipe to eat or make for my next meal.     
+                Help me choose what recipe to eat or make for my next meal based on this prompt {{prompt}}.     
                 There are {% for factor, value in factors.items() %}'{{ factor }}'{% if not loop.last %}, {% endif %}{% endfor %} factors I want to consider.
                 {% for factor, value in factors.items() %}
                 For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
@@ -302,7 +302,7 @@ class Agent():
         self.init_pinecone(index_name=self.index)
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt)
-        output = template.render(factors=factors)
+        output = template.render(prompt=prompt, factors=factors)
         complete_query = str(agent_summary) + output
         complete_query = PromptTemplate.from_template(complete_query)
 
@@ -493,21 +493,18 @@ class Agent():
             'phone': phone,
             'website': website,
         }
-    async def restaurant_generation(self, factors: dict, model_speed:str):
+    async def restaurant_generation(self, prompt: str, model_speed:str):
         """Serves to suggest a restaurant to the agent"""
 
         prompt = """
-              Based on the following factors, There are {% for factor, value in factors.items() %}'{{ factor }}'{% if not loop.last %}, {% endif %}{% endfor %} factors I want to consider.
-                {% for factor, value in factors.items() %}
-                For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
-                {% endfor %}
+              Based on the following prompt {{prompt}} and all the history and information of this user,
                 Determine the type of restaurant you should offer to a customer. Make the recomendation very short and to a point, as if it is something you would type on google maps
             """
 
         self.init_pinecone(index_name=self.index)
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt)
-        output = template.render(factors=factors)
+        output = template.render(prompt=prompt)
         complete_query = str(agent_summary) + output
         complete_query = PromptTemplate.from_template(complete_query)
         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
@@ -523,14 +520,11 @@ class Agent():
     async def run_wolt_tool(self, zipcode, chain_result):
         from food_scrapers import  wolt_tool
         return wolt_tool.main(zipcode, chain_result)
-    async def delivery_generation(self, factors: dict, zipcode:str, model_speed:str):
+    async def delivery_generation(self, prompt: str, zipcode:str, model_speed:str):
         """Serves to optimize agent delivery recommendations"""
 
         prompt = """
-              Based on the following factors, There are {% for factor, value in factors.items() %}'{{ factor }}'{% if not loop.last %}, {% endif %}{% endfor %} factors I want to consider.
-                {% for factor, value in factors.items() %}
-                For '{{ factor }}', I want the meal to be '{{ value }}' points on a scale of 1 to 100 points{% if not loop.last %}.{% else %}.{% endif %}
-                {% endfor %}
+              Based on the following prompt {{prompt}}
                 Determine the type of food you would want to recommend to the user, that is commonly ordered online. It should of type of food offered on a delivery app similar to burger or pizza, but it doesn't have to be that. 
                 The response should be very short
             """
@@ -538,7 +532,7 @@ class Agent():
         self.init_pinecone(index_name=self.index)
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt)
-        output = template.render(factors=factors)
+        output = template.render(prompt=prompt)
         complete_query = str(agent_summary) + output
         complete_query = PromptTemplate.from_template(complete_query)
         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)

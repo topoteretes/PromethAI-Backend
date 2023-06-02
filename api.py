@@ -120,25 +120,24 @@ async def recipe_request(request_data: Payload) -> dict:
     factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.recipe_generation(factors_dict, model_speed="slow")
+    output = agent.recipe_generation(factors_dict,json_payload["prompt"], model_speed="slow")
     return JSONResponse(content={"response":json.loads(output)});
 
 @app.post("/restaurant-request", response_model=dict)
 async def restaurant_request(request_data: Payload) -> dict:
     json_payload = request_data.payload
-    factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.restaurant_generation(factors_dict, model_speed="slow")
+    output = agent.restaurant_generation(json_payload["prompt"], model_speed="slow")
     return JSONResponse(content={"response":{"restaurants": output}});
 
 @app.post("/delivery-request", response_model=dict)
 async def delivery_request(request_data: Payload) -> dict:
     json_payload = request_data.payload
-    factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
+    # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.delivery_generation(factors_dict, zipcode=json_payload["zipcode"], model_speed="slow")
+    output = await agent.delivery_generation( json_payload["prompt"], zipcode=json_payload["zipcode"], model_speed="slow")
     print("HERE IS THE OUTPUT", output)
     return JSONResponse(content={"response": {"url": output}})
 
