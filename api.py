@@ -48,7 +48,7 @@ async def root():
 
 
 @app.post("/prompt-to-choose-meal-tree", response_model=dict)
-async def generate_diet_goal(request_data: Payload) -> dict:
+async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     if CANNED_RESPONSES:
         with open('fixtures/choose_meal_tree_response.json', 'r') as f:
             json_data = json.load(f)
@@ -64,13 +64,12 @@ async def generate_diet_goal(request_data: Payload) -> dict:
     return JSONResponse(content={"response":json.loads(output)})
 
 @app.post("/prompt-to-update-meal-tree", response_model=dict)
-async def generate_diet_goal(request_data: Payload) -> dict:
-    if CANNED_RESPONSES:
-        with open('fixtures/update_meal_tree_response.json', 'r') as f:
-            json_data = json.load(f)
-            stripped_string_dict = {"response": json_data}
-            return JSONResponse(content=stripped_string_dict)
-
+async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
+    # if CANNED_RESPONSES:
+    #     with open('fixtures/update_meal_tree_response.json', 'r') as f:
+    #         json_data = json.load(f)
+    #         stripped_string_dict = {"response": json_data}
+    #         return JSONResponse(content=stripped_string_dict)
 
     json_payload = request_data.payload
     agent = Agent()

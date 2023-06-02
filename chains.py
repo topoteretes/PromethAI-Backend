@@ -26,7 +26,7 @@ import json
 from langchain.tools import GooglePlacesTool
 import tiktoken
 import asyncio
-
+import logging
 # redis imports for cache
 
 from langchain.cache import RedisSemanticCache
@@ -102,10 +102,10 @@ class Agent():
             disallowed_special=()
         )
         return len(tokens)
-    class VectorDBInput(BaseModel):
-        observation: str = Field(description="should be what we are inserting into the memory")
-        namespace: str = Field(description="should be the namespace of the VectorDB")
-    @tool("update_memories", return_direct=True)
+    # class VectorDBInput(BaseModel):
+    #     observation: str = Field(description="should be what we are inserting into the memory")
+    #     namespace: str = Field(description="should be the namespace of the VectorDB")
+    # @tool("_update_memories", return_direct=True, args_schema = VectorDBInput)
     def _update_memories(self, observation: str, namespace: str)-> None:
         """Update related characteristics, preferences or dislikes for a user."""
         from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -121,11 +121,12 @@ class Agent():
                                           metadata={'inserted_at': datetime.now(), "text": observation,
                                                     'user_id': self.user_id}, namespace=namespace)])
 
-
-
+    class FetchMemories(BaseModel):
+        observation: str = Field(description="observation we want to fetch from vectordb")
+        # namespace: str = Field(description="namespace of the VectorDB")
     # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
 
-    @tool("fetch_memories", return_direct=True)
+    # @tool("_fetch_memories", args_schema = FetchMemories)
     def _fetch_memories(self, observation: str, namespace:str) -> List[Document]:
         """Fetch related characteristics, preferences or dislikes for a user."""
 
@@ -363,6 +364,7 @@ class Agent():
             )
             from datetime import datetime
             retriever = vectorstore.as_retriever()
+            logging.info(str(chain_result))
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
@@ -380,17 +382,20 @@ class Agent():
 
         retriever = vectorstore.as_retriever()
         retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}  # filter by user_id
-        print(retriever.get_relevant_documents(category))
-        answer_response = retriever.get_relevant_documents(category)
+        answer_response = retriever.get_relevant_documents("prompt")
         answer_response.sort(
             key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min,
             reverse=True)
+        logging.info(str(answer_response))
         # The most recent document is now the first element of the list.
         try:
             most_recent_document = answer_response[0]
         except IndexError:
             return {"error": "No document found for this user. Make sure that a query is appropriate"}
         escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+
+        logging.info(escaped_content)
+        # print("HERE IS THE ESCAPED CONTENT", escaped_content)
         optimization_prompt = """Change the category: {{category}} based on {{from_}} to {{to_}}  change and update appropriate of the following original: {{results}}
          """
 
@@ -612,74 +617,164 @@ class Agent():
             # print("HERE IS THE FINAL OUTPUT", final_output)
             # json_data = json.dumps(final_output)
             # return json_data
-            #
-            # def voice_input_imp(self, query: str, model_speed: str):
-            #     """Serves to generate sub goals for the user and drill down into it"""
-            #
-            #     prompt = """
-            #     {bu}
-            #         Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
-            #         1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
-            #         Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
-            #         with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
-            #         Make sure to include the factors in the summary if they are provided
-            #         """
-            #     from langchain.agents import load_tools
-            #     tools = load_tools(["serpapi", "llm-math", "fetch_memories", "update_memories"], llm=self.llm)
-            #     agent = initialize_agent(tools, self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
-            #     self.init_pinecone(index_name=self.index)
-            #     agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
-            #     template = Template(prompt)
-            #     output = template.render(query=query)
-            #     print("HERE IS THE AGENT SUMMARY", agent_summary)
-            #     print("HERE IS THE TEMPLATE", output)
-            #     complete_query = output
-            #     complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
-            #     if model_speed == 'fast':
-            #         output = self.replicate_llm(output)
-            #         return output
-            #     else:
-            #         chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
-            #         summary_action = chain.run("bu").strip()
-            #         summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
-            #         summary_action = summary_action.split(":")[1].strip()
-            #         print(summary_action)
-            #         if 'goal' in summary_action.lower():
-            #             namespace_val = "GOAL"
-            #         elif 'preference' in summary_action.lower():
-            #             namespace_val = "PREFERENCE"
-            #         elif 'result' in summary_action.lower():
-            #             namespace_val = "RESULT"
-            #         elif 'subgoal' in summary_action.lower():
-            #             namespace_val = "GOAL"
-            #         vectorstore: Pinecone = Pinecone.from_existing_index(
-            #             index_name=self.index,
-            #             embedding=OpenAIEmbeddings(),
-            #             namespace=namespace_val
-            #         )
-            #
-            #         retriever = vectorstore.as_retriever()
-            #         retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}  # filter by user_id
-            #         print(retriever.get_relevant_documents(summary_action))
-            #         answer_response = retriever.get_relevant_documents(summary_action)
-            #         answer_response.sort(key=lambda doc: doc.metadata.get(
-            #             'inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
-            #         # The most recent document is now the first element of the list.
-            #         try:
-            #             most_recent_document = answer_response[0]
-            #         except IndexError:
-            #             return {"error": "No document found for this user. Make sure that a query is appropriate"}
-            #         escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
-            #         optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}"""
-            #         optimization_prompt = Template(optimization_prompt)
-            #         optimization_output = optimization_prompt.render(results=escaped_content)
-            #         prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
-            #         review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
-            #         output = review_chain.run(query=summary_action).strip()
-            #         json_data = json.dumps(output)
-            #         return json_data
-            #
-            #
+
+    def voice_input_imp(self, query: str, model_speed: str):
+
+        """Serves to generate sub goals for the user and drill down into it"""
+        from langchain.agents import initialize_agent, AgentType
+        from pydantic import BaseModel, Field
+        from langchain import PromptTemplate
+        import os
+        OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
+        from langchain.llms.openai import OpenAI
+        from langchain.tools import BaseTool, StructuredTool, Tool, tool
+        # llm = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY)
+        llm=self.llm
+
+        class FetchMemories(BaseModel):
+            observation: str = Field(description="observation we want to fetch from vectordb")
+            # namespace: str = Field(description="namespace of the VectorDB")
+
+        # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
+
+        @tool("memories_wrapper", args_schema=FetchMemories)
+        def memories_wrapper(observation,  args_schema=FetchMemories):
+            """Fetches data from the VectorDB and returns it as a python dictionary."""
+            self._fetch_memories(observation, "SUMMARY")
+
+        class OptimisticString(BaseModel):
+            input_string: str = Field(description="should be a string with any tone")
+
+        @tool("optimistic_string", args_schema=OptimisticString)
+        def optimistic_string(input_string: str) -> str:
+            """Rewrites the input string with a more optimistic tone."""
+            # Add your logic to process the input_string and generate the output_string
+            template = (
+                "Rewrite the following sentence with a more optimistic tone: {input_string}"
+            )
+            prompt = PromptTemplate(template=template, input_variables=["input_string"])
+
+            output_string = llm(
+                prompt.format(input_string=input_string)
+            )  # Replace this with the actual call to the language model
+            return output_string
+
+        # agent_instance = Agent()
+
+        agent = initialize_agent(llm=llm, tools=[memories_wrapper], agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        result = agent.run("I need to get summary of my memories")
+        print(result)
+
+        # prompt = """
+        # {bu}
+        #     Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
+        #     1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
+        #     Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
+        #     with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
+        #     Make sure to include the factors in the summary if they are provided
+        #     """
+        # # from langchain.agents import load_tools
+        # # tools = load_tools(["serpapi", "llm-math", "_fetch_memories", "_update_memories"], llm=self.llm)
+        # from langchain import LLMMathChain, SerpAPIWrapper
+        # from langchain.agents import AgentType, initialize_agent
+        # from langchain.chat_models import ChatOpenAI
+        # from langchain.tools import BaseTool, StructuredTool, Tool, tool
+        # # search = SerpAPIWrapper()
+        # # llm_math_chain = LLMMathChain(llm=self.llm, verbose=True)
+        #
+        # # class FetchMemories(BaseModel):
+        # #     observation: str = Field(description="observation we want to fetch from vectordb")
+        # #     namespace: str = Field(description="namespace of the VectorDB")
+        # # tools = [
+        # #     Tool.from_function(
+        # #         func=search.run,
+        # #         name="Search",
+        # #         description="useful for when you need to answer questions about current events"
+        # #         # coroutine= ... <- you can specify an async method if desired as well
+        # #     ),
+        # # ]
+        # # tools.append(
+        # #     Tool.from_function(
+        # #         func=self._fetch_memories,
+        # #         name="_fetch_memories",
+        # #         description="useful for when you need to answer questions about math",
+        # #         args_schema=FetchMemories
+        # #         # coroutine= ... <- you can specify an async method if desired as well
+        # #     )
+        # # )
+        # llm = OpenAI(temperature=0, openai_api_key = self.OPENAI_API_KEY)
+        # class OptimisticString(BaseModel):
+        #     input_string: str = Field(description="should be a string with any tone")
+        # @tool("optimistic_string", args_schema=OptimisticString)
+        # def optimistic_string(input_string: str) -> str:
+        #     """Rewrites the input string with a more optimistic tone."""
+        #     # Add your logic to process the input_string and generate the output_string
+        #     template = (
+        #         "Rewrite the following sentence with a more optimistic tone: {input_string}"
+        #     )
+        #     prompt = PromptTemplate(template=template, input_variables=["input_string"])
+        #
+        #     output_string = llm(
+        #         prompt.format(input_string=input_string)
+        #     )  # Replace this with the actual call to the language model
+        #     return output_string
+        # # _fetch_memories = load_tools(["_fetch_memories"], llm=self.llm)
+        # from langchain.agents import initialize_agent
+        # agento = initialize_agent(llm, tools=[optimistic_string],  verbose=True)
+        # # tool_names = [tool.name for tool in tools]
+        # # agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
+        # agento.run("users core summary", namespace="SUMMARY")
+        # self.init_pinecone(index_name=self.index)
+        # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        # template = Template(prompt)
+        # output = template.render(query=query)
+        # print("HERE IS THE AGENT SUMMARY", agent_summary)
+        # print("HERE IS THE TEMPLATE", output)
+        # complete_query = output
+        # complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
+        # if model_speed == 'fast':
+        #     output = self.replicate_llm(output)
+        #     return output
+        # else:
+        #     chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+        #     summary_action = chain.run("bu").strip()
+        #     summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
+        #     summary_action = summary_action.split(":")[1].strip()
+        #     print(summary_action)
+        #     if 'goal' in summary_action.lower():
+        #         namespace_val = "GOAL"
+        #     elif 'preference' in summary_action.lower():
+        #         namespace_val = "PREFERENCE"
+        #     elif 'result' in summary_action.lower():
+        #         namespace_val = "RESULT"
+        #     elif 'subgoal' in summary_action.lower():
+        #         namespace_val = "GOAL"
+        #     vectorstore: Pinecone = Pinecone.from_existing_index(
+        #         index_name=self.index,
+        #         embedding=OpenAIEmbeddings(),
+        #         namespace=namespace_val
+        #     )
+        #
+        #     retriever = vectorstore.as_retriever()
+        #     retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}}  # filter by user_id
+        #     print(retriever.get_relevant_documents(summary_action))
+        #     answer_response = retriever.get_relevant_documents(summary_action)
+        #     answer_response.sort(key=lambda doc: doc.metadata.get(
+        #         'inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
+        #     # The most recent document is now the first element of the list.
+        #     try:
+        #         most_recent_document = answer_response[0]
+        #     except IndexError:
+        #         return {"error": "No document found for this user. Make sure that a query is appropriate"}
+        #     escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+        #     optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}"""
+        #     optimization_prompt = Template(optimization_prompt)
+        #     optimization_output = optimization_prompt.render(results=escaped_content)
+        #     prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+        #     review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+        #     output = review_chain.run(query=summary_action).strip()
+        #     json_data = json.dumps(output)
+        #     return json_data
 
             # chain_result = chain.run(prompt=complete_query).strip()
             # json_data = json.dumps(chain_result)
@@ -692,8 +787,8 @@ class Agent():
 
             # embeddings = OpenAIEmbeddings()
             # embeddings.embed_documents(["man walks in the forest", "horse walks in the field"])
-            from langchain.chains import RetrievalQAWithSourcesChain
-            from langchain.chains import RetrievalQA
+            # from langchain.chains import RetrievalQAWithSourcesChain
+            # from langchain.chains import RetrievalQA
             # llm = OpenAIEmbeddings()
 
             # from langchain.retrievers import TimeWeightedVectorStoreRetriever
@@ -703,7 +798,7 @@ class Agent():
             # #retriever.add_documents([Document(page_content="hello majmune", metadata={"last_accessed_at": yesterday,"text": "hello majmune",'user_id': self.user_id}, namespace="test_namespace")])
             # # retriever.add_documents([Document(page_content="hello foo", metadata={ "text": "hello foo"} ,namespace="test_namespace")])
             # print(retriever.get_relevant_documents("hello majmune"))
-            from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+            # from langchain.chains.qa_with_sources import load_qa_with_sources_chain
             # qa_chain = load_qa_with_sources_chain(llm=self.llm, chain_type="stuff")
 
             #this works
@@ -725,16 +820,16 @@ class Agent():
             # most_recent_document = answer_response[0]
             # print(answer_response)
             #above works until works
-    def simple_agent_chain(self):
-        """To test simple agent and use intermediary steps"""
-        from langchain.agents import load_tools
-        tools = load_tools(["serpapi", "llm-math"], llm=self.llm)
-        agent = initialize_agent(tools, self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True,
-                                 return_intermediate_steps=True)
-        response = agent(
-            {"input": "Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?"})
-        print(response["intermediate_steps"])
-        return
+    # def simple_agent_chain(self):
+    #     """To test simple agent and use intermediary steps"""
+    #     from langchain.agents import load_tools
+    #     tools = load_tools(["serpapi", "llm-math"], llm=self.llm)
+    #     agent = initialize_agent(tools, self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True,
+    #                              return_intermediate_steps=True)
+    #     response = agent(
+    #         {"input": "Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?"})
+    #     print(response["intermediate_steps"])
+    #     return
     def solution_evaluation_test(self):
         """Serves to update agent traits so that they can be used in summary"""
         return
@@ -759,6 +854,8 @@ class Agent():
         return result
 
 
+
+
 if __name__ == "__main__":
     agent = Agent()
     # agent.goal_optimization(factors={}, model_speed="slow")
@@ -770,7 +867,8 @@ if __name__ == "__main__":
     # agent.simple_agent_chain()
     #result = agent.prompt_to_choose_meal_tree(" I’d like a quick veggie meal under 25$ near me.", model_speed="slow")
     #print(result)
-    agent.voice_input("I need your help, I need to add weight loss as a goal ", model_speed="slow")
+    agent._test()
+    # agent.voice_input_imp("I need your help, I need to see my memories from Vector DB ", model_speed="slow")
     # agent.goal_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
