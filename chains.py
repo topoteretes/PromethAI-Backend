@@ -587,6 +587,8 @@ class Agent():
                 namespace_val = "RESULT"
             elif 'subgoal' in summary_action.lower():
                 namespace_val = "GOAL"
+            else:
+                namespace_val = "OTHER"
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
@@ -595,8 +597,8 @@ class Agent():
 
             retriever = vectorstore.as_retriever()
             retriever.search_kwargs = {'filter': {'user_id': {'$eq': self.user_id}}} # filter by user_id
-            print(retriever.get_relevant_documents(summary_action))
-            answer_response = retriever.get_relevant_documents(summary_action)
+            answer_response = retriever.get_relevant_documents("prompt")
+            logging.info(answer_response)
             answer_response.sort(key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min, reverse=True)
             # The most recent document is now the first element of the list.
             try:
