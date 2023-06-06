@@ -365,15 +365,15 @@ class Agent():
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        json_example = {"categories":[{"category":"time","preferred":"quick"},{"category":"location","preferred":"near me"}]}
-        json_str = str(json_example)
-        json_str = json_str.replace("{", "{{").replace("}", "}}")
-        prompt_template="""Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Decompose decision points into categories and provide the decision exaclty as they are in the prompt. Provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}"""
+        json_example = '<category1>=<decision1>;<category2>=<decision2>...';
+        #json_str = str(json_example)
+       # json_str = json_str.replace("{", "{{").replace("}", "}}")
+        prompt_template="""Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words. The answer should be one line follow this property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         template = Template(prompt_template)
-        output = template.render(prompt_str = prompt, json_str=json_str)
+        output = template.render(prompt_str = prompt, json_example=json_example)
         complete_query =  output
         print("HERE IS THE COMPLETE QUERY", complete_query)
         complete_query = PromptTemplate.from_template(complete_query)
@@ -398,7 +398,7 @@ class Agent():
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
         
-            return chain_result.replace("'", '"')
+            return '{"result": "%s"}' % chain_result
 
     def prompt_to_update_meal_tree(self,  category:str, from_:str, to_:str, model_speed:str):
 
