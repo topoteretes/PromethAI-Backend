@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from typing import Dict, Any
+
 from chains import Agent
 
 import json
@@ -75,7 +76,8 @@ async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.prompt_to_update_meal_tree(json_payload["category"], json_payload["from"], json_payload["to"], model_speed= json_payload["model_speed"])
-    return JSONResponse(content={"response":json.loads(output)})
+    print("HERE IS THE OUTPUT", output)
+    return JSONResponse(content={"response":output})
 @app.post("/variate-diet-assumption", response_model=dict)
 async def variate_diet_assumption(request_data: Payload) -> dict:
 
@@ -117,11 +119,13 @@ async def recipe_request(request_data: Payload) -> dict:
             return JSONResponse(content=stripped_string_dict)
 
     json_payload = request_data.payload
-    factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
+    # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.recipe_generation(factors_dict,json_payload["prompt"], model_speed="slow")
+
+    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow")
     return JSONResponse(content={"response":json.loads(output)});
+
 
 @app.post("/restaurant-request", response_model=dict)
 async def restaurant_request(request_data: Payload) -> dict:

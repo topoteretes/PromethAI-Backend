@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from main_chains import Agent
+from chains import Agent
 from .api import app
 
 client = TestClient(app)
