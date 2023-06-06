@@ -1,0 +1,144 @@
+{
+     "prompt": "I’d like a quick veggie meal under $25 near me. No peanuts, I’m allergic.",
+     "tree": [
+          {
+               "category": "price",
+               "options": [
+                    {
+                         "category": "under $25",
+                         "options": [
+                              {
+                                   "category": "$10"
+                              },
+                              {
+                                   "category": "$15"
+                              },
+                              {
+                                   "category": "$20"
+                              }
+                         ],
+                         "preference": []
+                    },
+                    {
+                         "category": "over $25",
+                         "options": [
+                              {
+                                   "category": "$30"
+                              },
+                              {
+                                   "category": "$35"
+                              },
+                              {
+                                   "category": "$40"
+                              }
+                         ],
+                         "preference": []
+                    }
+               ],
+               "preference": [
+                    "under $25"
+               ]
+          },
+          {
+               "category": "location",
+               "options": [
+                    {
+                         "category": "near me",
+                         "options": [
+                              {
+                                   "category": "1 mile"
+                              },
+                              {
+                                   "category": "5 miles"
+                              },
+                              {
+                                   "category": "10 miles"
+                              }
+                         ],
+                         "preference": []
+                    },
+                    {
+                         "category": "far away",
+                         "options": [
+                              {
+                                   "category": "20 miles"
+                              },
+                              {
+                                   "category": "50 miles"
+                              },
+                              {
+                                   "category": "100 miles"
+                              }
+                         ],
+                         "preference": []
+                    }
+               ],
+               "preference": [
+                    "near me"
+               ]
+          },
+          {
+               "category": "diet",
+               "options": [
+                    {
+                         "category": "veggie",
+                         "options": [
+                              {
+                                   "category": "vegan"
+                              },
+                              {
+                                   "category": "vegetarian"
+                              },
+                              {
+                                   "category": "plant-based"
+                              }
+                         ],
+                         "preference": []
+                    },
+                    {
+                         "category": "non-veggie",
+                         "options": [
+                              {
+                                   "category": "meat"
+                              },
+                              {
+                                   "category": "dairy"
+                              },
+                              {
+                                   "category": "seafood"
+                              }
+                         ],
+                         "preference": []
+                    }
+               ],
+               "preference": [
+                    "veggie"
+               ]
+          },
+          {
+               "category": "allergies",
+               "options": [
+                    {
+                         "category": "peanuts"
+                    },
+                    {
+                         "category": "berries",
+                         "options": [
+                              {
+                                   "category": "cranberry"
+                              },
+                              {
+                                   "category": "blackberry"
+                              },
+                              {
+                                   "category": "blueberry"
+                              }
+                         ]
+                    }
+               ],
+               "preference": [
+                    "peanuts"
+               ]
+          }
+     ]
+}
