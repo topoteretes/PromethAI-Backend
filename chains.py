@@ -28,6 +28,7 @@ from langchain.tools import GooglePlacesTool
 import tiktoken
 import asyncio
 import logging
+from langchain.chat_models import ChatOpenAI
 # redis imports for cache
 
 from langchain.cache import RedisSemanticCache
@@ -66,8 +67,8 @@ class Agent():
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo"
         self.openai_model4 = "gpt-4"
-        self.llm35 = OpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
-        self.llm = OpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model4)
+        self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
+        self.llm = ChatOpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
         self.verbose: bool = True
 
@@ -325,42 +326,39 @@ class Agent():
             return json_data
     def recipe_generation(self,  prompt:str, model_speed:str):
         """Generates a recipe solution in json"""
-        import time
-
-        start_time = time.time()
-        prompt = """
-                Help me choose what recipe to eat or make for my next meal based on this prompt {{prompt}}.     
+        prompt_base = """ Help me choose what recipe to eat or make for my next meal based on this prompt {{prompt}}.     
                 Instructions and ingredients should be detailed.
                  Answer a condensed JSON with no whitespaces that contains the following keys and values for every recipe in the list of field "recipes":
-                 "title", "rating", "prep_time", "cook_time", "description", "ingredients", "instructions".  After the JSON output, don't explain or write anything
+                 "title", "rating", "prep_time", "cook_time", "description", "ingredients", "instructions".  After the JSON output, dont explain or write anything
         """
         self.init_pinecone(index_name=self.index)
-        agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
-        template = Template(prompt)
+        # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        template = Template(prompt_base)
         output = template.render(prompt=prompt)
-        complete_query = str(agent_summary) + output
+
+        logging.info("HERE IS THE PROMPT", output)
+        complete_query = output
         complete_query = PromptTemplate.from_template(complete_query)
 
         if model_speed =='fast':
             output = self.replicate_llm(output)
             return output
         else:
-            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+            logging.info("we are here")
+            chain = LLMChain(llm=self.llm35, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-            end_time = time.time()
-            vectorstore: Pinecone = Pinecone.from_existing_index(
-                index_name=self.index,
-                embedding=OpenAIEmbeddings(),
-                namespace='RESULT'
-            )
-            from datetime import datetime
-            retriever = vectorstore.as_retriever()
-            retriever.add_documents([Document(page_content=chain_result,
-                                              metadata={'inserted_at': datetime.now(), "text": chain_result,
-                                                        'user_id': self.user_id}, namespace="RESULT")])
-
-            execution_time = end_time - start_time
-            print("Execution time: ", execution_time, " seconds")
+            #
+            # vectorstore: Pinecone = Pinecone.from_existing_index(
+            #     index_name=self.index,
+            #     embedding=OpenAIEmbeddings(),
+            #     namespace='RESULT'
+            # )
+            # from datetime import datetime
+            # retriever = vectorstore.as_retriever()
+            # retriever.add_documents([Document(page_content=chain_result,
+            #                                   metadata={'inserted_at': datetime.now(), "text": chain_result,
+            #                                             'user_id': self.user_id}, namespace="RESULT")])
+            logging.info("HERE IS THE CHAIN RESULT", chain_result)
             return chain_result
 
 
