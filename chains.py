@@ -421,21 +421,25 @@ class Agent():
         answer_response.sort(
             key=lambda doc: doc.metadata.get('inserted_at') if 'inserted_at' in doc.metadata else datetime.min,
             reverse=True)
-        logging.info(str(answer_response))
+
         # The most recent document is now the first element of the list.
         try:
             most_recent_document = answer_response[0]
         except IndexError:
             return {"error": "No document found for this user. Make sure that a query is appropriate"}
-        escaped_content = most_recent_document.page_content.replace("{", "{{").replace("}", "}}")
+        doc = most_recent_document.page_content
+        json_str = doc.replace("'", '"')
+        document = json.loads(json_str)
 
-
-
+        logging.info("Here is the doc" , str(document['tree']))
+        matching_items = [item for item in document['tree'] if item['category'] == category]
+        sub_tree = matching_items[0] if matching_items else None
+        sub_tree = json.dumps(sub_tree)
+        logging.info("Here is the doc" , str(sub_tree))
+        escaped_content = sub_tree.replace("{", "{{").replace("}", "}}")
         logging.info(escaped_content)
-        # print("HERE IS THE ESCAPED CONTENT", escaped_content)
-        # change category that exists in the tree
-        # add new category that doesn't exist in the tree
-        optimization_prompt = """Change the category: {{category}} based on {{from_}} to {{to_}}  change and update appropriate of the following original: {{results}}
+
+        optimization_prompt = """Change the category: {{category}} based on {{from_}} to {{to_}}  change and update appropriate of the following original inluding the preference: {{results}}
          """
 
         optimization_prompt = Template(optimization_prompt)
