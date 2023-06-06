@@ -365,15 +365,10 @@ class Agent():
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        json_example = {"prompt":prompt,"tree":[{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}],"preference":[]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}],"preference":[]}],"preference":["quick"]}]}
+        json_example = {"categories":[{"category":"time","preferred":"quick"},{"category":"location","preferred":"near me"}]}
         json_str = str(json_example)
         json_str = json_str.replace("{", "{{").replace("}", "}}")
-        prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are 
-        relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
-         Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement exactly as it is. 
-         For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
-         Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
-        """
+        prompt_template="""Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Decompose decision points into categories and provide the decision exaclty as they are in the prompt. Provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}"""
 
         self.init_pinecone(index_name=self.index)
         # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
