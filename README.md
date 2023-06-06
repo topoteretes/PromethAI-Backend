@@ -144,9 +144,4 @@ We're excited to connect with you and hear your ideas, thoughts, and experiences
 brew install act
 ```
 
-Add AWS config files to the env
-# To run tests
 
-```
-act --env-file act.env
-```
