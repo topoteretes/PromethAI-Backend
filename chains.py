@@ -606,7 +606,9 @@ class Agent():
             prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
             review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
             output = review_chain.run(query=summary_action).strip()
+
             json_data = json.dumps(output)
+
             return json_data
             # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
             # final_output = overall_chain.run('bu').strip()
@@ -614,7 +616,7 @@ class Agent():
             # json_data = json.dumps(final_output)
             # return json_data
 
-    def voice_input_imp(self, query: str, model_speed: str):
+    def voice_text_input_imp(self, query: str, model_speed: str):
 
         """Serves to generate sub goals for the user and drill down into it"""
         from langchain.agents import initialize_agent, AgentType
@@ -633,10 +635,10 @@ class Agent():
 
         # @tool("_update_memories", return_direct=True, args_schema=VectorDBInput)
 
-        @tool("memories_wrapper", args_schema=FetchMemories)
+        @tool("memories_wrapper", args_schema=FetchMemories, return_direct=True)
         def memories_wrapper(observation,  args_schema=FetchMemories):
             """Fetches data from the VectorDB and returns it as a python dictionary."""
-            self._fetch_memories(observation, "SUMMARY")
+            return self._fetch_memories(observation, "GOAL")
 
         class OptimisticString(BaseModel):
             input_string: str = Field(description="should be a string with any tone")
@@ -654,13 +656,80 @@ class Agent():
                 prompt.format(input_string=input_string)
             )  # Replace this with the actual call to the language model
             return output_string
+        class ActionChoice(BaseModel):
+            input_string: str = Field(description="should be a string with any tone")
 
+        @tool("action_choice", args_schema=ActionChoice, return_direct=True)
+        def action_choice(summary_action: str) -> str:
+            """Rewrites the input string with a more optimistic tone."""
+            summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
+            summary_action = summary_action.split(":")[1].strip()
+            print(summary_action)
+            if 'goal' in summary_action.lower():
+                namespace_val = "GOAL"
+            elif 'preference' in summary_action.lower():
+                namespace_val = "PREFERENCE"
+            elif 'result' in summary_action.lower():
+                namespace_val = "RESULT"
+            elif 'subgoal' in summary_action.lower():
+                namespace_val = "GOAL"
+            else:
+                namespace_val = "OTHER"
+            return namespace_val
         # agent_instance = Agent()
 
-        agent = initialize_agent(llm=llm, tools=[memories_wrapper], agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
-        result = agent.run("I need to get summary of my memories")
-        print(result)
+        agent = initialize_agent(llm=llm, tools=[memories_wrapper, action_choice], agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        # result_most_recent_memory_doc = agent.run("Return json content from vectordb")
+        prompt = """ 
+        {bu}
+            Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
+            1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
+            Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
+            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Diet added", "summary": "The user is updating their goal to lose weight"
+            Make sure to include the factors in the summary if they are provided
+            """
 
+        # print(result)
+        template = Template(prompt)
+        output = template.render(query=query)
+        complete_query =  output
+        complete_query = PromptTemplate(input_variables=["bu"], template=complete_query)
+        chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+        # summary_action = chain.run("bu").strip()
+        # summary_action = summary_action.split("Result_type")[1].split("summary")[0].strip()
+        # summary_action = summary_action.split(":")[1].strip()
+        # print(summary_action)
+        # if 'goal' in summary_action.lower():
+        #     namespace_val = "GOAL"
+        # elif 'preference' in summary_action.lower():
+        #     namespace_val = "PREFERENCE"
+        # elif 'result' in summary_action.lower():
+        #     namespace_val = "RESULT"
+        # elif 'subgoal' in summary_action.lower():
+        #     namespace_val = "GOAL"
+        # else:
+        #     namespace_val = "OTHER"
+        #
+
+        # Find the index of the first opening curly bracket
+        start_index = result_most_recent_memory_doc.find('{')
+        # Find the index of the corresponding closing curly bracket
+        end_index = result_most_recent_memory_doc.find('}', start_index) + 1
+
+        # Extract the substring between the first opening and closing curly brackets
+        result_most_recent_memory_doc = result_most_recent_memory_doc[start_index:end_index]
+
+        escaped_content = result_most_recent_memory_doc.replace("{", "{{").replace("}", "}}")
+        optimization_prompt = """Based on the query: {query} change and update appropriate of the following original: {{results}}"""
+        optimization_prompt = Template(optimization_prompt)
+        optimization_output = optimization_prompt.render( results=escaped_content)
+        prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
+        review_chain = LLMChain(llm=self.llm, prompt=prompt_template)
+        # output = review_chain.run(query=summary_action).strip()
+        # overall_chain = SimpleSequentialChain(chains=[chain, review_chain], verbose=True)
+        # final_output = overall_chain.run('bu').strip()
+        json_data = json.dumps(output)
+        return json_data
         # prompt = """
         # {bu}
         #     Based on all the history and information of this user, classify the following query: {{query}} into one of the following categories:
@@ -846,7 +915,8 @@ class Agent():
     def _retrieve_summary(self):
         """Serves to retrieve agent summary"""
         self.init_pinecone(index_name=self.index)
-        result = self._fetch_memories('Users core summary', "SUMMARY")
+        result = self._fetch_memories('Users core prompt', "GOAL")
+        print(result)
         return result
 
 
@@ -863,8 +933,9 @@ if __name__ == "__main__":
     # agent.simple_agent_chain()
     #result = agent.prompt_to_choose_meal_tree(" I’d like a quick veggie meal under 25$ near me.", model_speed="slow")
     #print(result)
-    agent._test()
-    # agent.voice_input_imp("I need your help, I need to see my memories from Vector DB ", model_speed="slow")
+    # agent._test()
+    # agent._retrieve_summary()
+    agent.voice_text_input_imp("Users core prompt ", model_speed="slow")
     # agent.goal_generation( {    'health': 85,
     # 'time': 75,
     # 'cost': 50}, model_speed="slow")
