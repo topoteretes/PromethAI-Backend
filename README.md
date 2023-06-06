@@ -124,9 +124,23 @@ curl --location --request POST 'http://0.0.0.0:8000/generate-diet-sub-goal' \
 }'
 ```
 
-# To test Git workflows, install act
+# 🔰 Notice
 
-```
+PromethAI is a work in progress, delivered to you without any guarantees, whether explicit or implied. By choosing to use this application, you consent to take on any associated risks, including data loss, system failure, or any other complications that may arise.
+
+The creators and contributors of PromethAI disclaim any responsibility or liability for any potential losses, damages, or any other adverse effects resulting from your use of this software. The onus is solely on you for any decisions or actions you take based on the information given by PromethAI.
+
+Please be aware that usage of the GPT-4 language model could incur significant costs due to its token consumption. By using this software, you acknowledge and agree to monitor your own token usage and manage the associated costs. We strongly suggest routinely checking your OpenAI API usage and implementing necessary limits or alerts to avoid unexpected fees.
+
+Given its experimental nature, PromethAI may generate content or perform actions that do not align with real-world business norms or legal obligations. It falls on you to ensure that any actions or decisions based on this software’s output adhere to all relevant laws, regulations, and ethical standards. The creators and contributors of this project will not be held accountable for any fallout from using this software.
+
+By utilizing PromethAI, you agree to protect, defend, and absolve the creators, contributors, and any affiliated parties from any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) that arise from your use of this software or your violation of these terms.
+
+🐦 Engage With Us on Twitter
+Stay in the loop with the latest news, updates, and insights about PromethAI by following our Twitter profiles. Interact with both the developer and the AI's own account for stimulating discussions, project updates, and more.
+
+Developer: Follow @tricalt for a sneak peek into the developmental journey, project updates, and related subjects from the brains behind Entrepreneur-GPT.
+We're excited to connect with you and hear your ideas, thoughts, and experiences with PromethAI. Join the conversation on Twitter and let's shape the future of AI collectively!
 brew install act
 ```
 
