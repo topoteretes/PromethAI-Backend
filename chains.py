@@ -370,9 +370,9 @@ class Agent():
         json_str = json_str.replace("{", "{{").replace("}", "}}")
         prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are 
         relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
-         Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement. 
+         Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement exactly as it is. 
          For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
-         Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,  in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
+         Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
         """
 
         self.init_pinecone(index_name=self.index)
@@ -402,9 +402,8 @@ class Agent():
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
-            # chain_result=str(chain_result)
-            chain_result = json.dumps(chain_result)
-            return chain_result
+        
+            return chain_result.replace("'", '"')
 
     def prompt_to_update_meal_tree(self,  category:str, from_:str, to_:str, model_speed:str):
 
@@ -449,8 +448,7 @@ class Agent():
         review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
         review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
         print("HERE IS THE OUTPUT", review_chain_result)
-        json_data = json.dumps(review_chain_result)
-        return json_data
+        return review_chain_result.replace("'", '"')
 
      # def goal_generation(self, factors: dict, model_speed:str):
      #
