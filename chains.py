@@ -422,7 +422,7 @@ class Agent():
     #      The answer should be one line follow this property structure : {{json_example}}"""
     #
     #     await self.generate_concurrently(base_prompt)
-    async def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
+    def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
         import time
 
