@@ -67,8 +67,10 @@ class Agent():
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo"
         self.openai_model4 = "gpt-4"
-        self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
-        self.llm = ChatOpenAI(temperature=0.0,max_tokens = 2000, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
+        self.llm35_fast = ChatOpenAI(temperature=0.0,max_tokens = 650, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
+        self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 800, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
+        self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
+        self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
         self.verbose: bool = True
 
@@ -79,24 +81,6 @@ class Agent():
         # from redis import Redis
         # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
-    def post_execution(func_to_execute):
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(self, *args, **kwargs):
-                print("tu smo")
-                result = func(self, *args, **kwargs)
-
-                # extracting the model_speed argument from kwargs
-                model_speed = kwargs.get('model_speed', 'slow')
-                print("tu smo")
-                # call the func_to_execute function
-                getattr(self, func_to_execute.__name__)(model_speed)
-
-                return result
-
-            return wrapper
-
-        return decorator
     def set_user_session(self, user_id: str, session_id: str) -> None:
         self.user_id = user_id
         self.session_id = session_id
@@ -277,7 +261,7 @@ class Agent():
         chain_output = chain.run(name= self.user_id).strip()
         return chain_output
 
-    @post_execution(_compute_agent_summary)
+
     def solution_generation(self, factors:dict, model_speed:str):
         """Generates a solution choice"""
         import time
@@ -377,7 +361,7 @@ class Agent():
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm35, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         # resp = await llm.agenerate(["Hello, how are you?"])
         print(chain_result)
