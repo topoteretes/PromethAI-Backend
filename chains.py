@@ -391,26 +391,37 @@ class Agent():
          Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
-        list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        # tasks = [self.async_generate( prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
-        # results = await asyncio.gather(*tasks)
-        #
-        # results_json = [self.extract_json(result) for result in results]
-        #
-        # # Filter out None values (invalid JSON data)
-        # valid_results = [result for result in results_json if result is not None]
-        # # Now you can concatenate these results into a single JSON
-        # combined_json = {"results": valid_results}
-        # return combined_json
+        list_of_items = base_prompt.split(";")
 
-        tasks = [self.async_generate(prompt_template_base, base_category, base_value) for base_category, base_value in
-                 list_of_items]
+        # If there is no ';', split on '=' instead
+        if len(list_of_items) == 1:
+            list_of_items = [list_of_items[0].split('=')]
+        else:
+            list_of_items = [item.split("=") for item in list_of_items]
+        tasks = [self.async_generate( prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
+        results = await asyncio.gather(*tasks)
 
-        for task in asyncio.as_completed(tasks):
-            result = await task
-            json_result = self.extract_json(result)
-            if json_result is not None:
-                yield json_result
+        if len(results) == 1:
+            results_json=results
+        else:
+
+            logging.info("HERE ARE THE valid RESults %s", results)
+            results_json = results
+            # results_json = [self.extract_json(result) for result in results]
+            # results_json = [result for result in results_json if result is not None]
+        logging.info("HERE ARE THE valid RESults %s", results_json)
+        # Now you can concatenate these results into a single JSON
+        combined_json = {"results": results_json}
+        return combined_json
+
+        # tasks = [self.async_generate(prompt_template_base, base_category, base_value) for base_category, base_value in
+        #          list_of_items]
+        #
+        # for task in asyncio.as_completed(tasks):
+        #     result = await task
+        #     json_result = self.extract_json(result)
+        #     if json_result is not None:
+        #         yield json_result
 
 
 
@@ -472,11 +483,17 @@ class Agent():
 
     async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        # combined_json = await self.generate_concurrently(prompt)
-        #
-        # return combined_json
-        async for result in self.generate_concurrently(prompt):
-            yield result
+        import time
+
+        start = time.time()
+        combined_json = await self.generate_concurrently(prompt)
+        end = time.time()
+
+        logging.info(f"Execution time: {end - start} seconds")
+
+        return combined_json
+        # async for result in self.generate_concurrently(prompt):
+        #     yield result
 
     def prompt_to_update_meal_tree(self,  category:str, from_:str, to_:str, model_speed:str):
 

@@ -66,7 +66,8 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
 from typing import Any, Generator
 from starlette.responses import StreamingResponse
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
-async def prompt_to_decompose_meal_tree_categories(request_data: Payload):
+async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict:
+
     # if CANNED_RESPONSES:
     #     with open('fixtures/choose_meal_tree_response.json', 'r') as f:
     #         json_data = json.load(f)
@@ -77,14 +78,14 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload):
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    # loop = asyncio.get_event_loop()
-    # output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
-    # # loop.close()
-    # return JSONResponse(content={"response":output})
-    async def stream():
-        async for output in agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"]):
-            yield json.dumps({"response": output}).encode("utf-8")
-    return StreamingResponse(stream())
+    loop = asyncio.get_event_loop()
+    output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+    # loop.close()
+    return JSONResponse(content={"response":output})
+    # async def stream():
+    #     async for output in agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"]):
+    #         yield json.dumps({"response": output}).encode("utf-8")
+    # return StreamingResponse(stream())
 
 @app.post("/prompt-to-update-meal-tree", response_model=dict)
 async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
