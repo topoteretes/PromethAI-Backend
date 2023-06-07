@@ -361,61 +361,75 @@ class Agent():
             logging.info("HERE IS THE CHAIN RESULT", chain_result)
             return chain_result
 
+    def extract_json(self, data):
+        json_start = data.find('{')
+        json_end = data.rfind('}') + 1
+        json_data = data[json_start:json_end]
+        try:
+            return json.loads(json_data)  # if successful, return Python dict
+        except json.JSONDecodeError:
+            return None  # if unsuccessful, return None
     async def async_generate(self, prompt_template_base, base_category, base_value):
-        base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
-        list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
-         Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
-         The answer should be one line follow this property structure : {{json_example}}"""
-
+        """Generates an individual solution choice """
+        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}],
+             "preference": []}, {"category": "slow", "options": [{"category": "60 mins"},"preference": ["quick"]}"""
+        json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
-        output = template.render(base_category=base_category, base_value=base_value)
+        output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm35, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         # resp = await llm.agenerate(["Hello, how are you?"])
         print(chain_result)
+        return chain_result
+
 
     async def generate_concurrently(self, base_prompt):
-        base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
+        """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
         prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
          Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
-        llm = self.llm
-        base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        tasks = [self.async_generate( prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
-        await asyncio.gather(*tasks)
+        # tasks = [self.async_generate( prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
+        # results = await asyncio.gather(*tasks)
+        #
+        # results_json = [self.extract_json(result) for result in results]
+        #
+        # # Filter out None values (invalid JSON data)
+        # valid_results = [result for result in results_json if result is not None]
+        # # Now you can concatenate these results into a single JSON
+        # combined_json = {"results": valid_results}
+        # return combined_json
+
+        tasks = [self.async_generate(prompt_template_base, base_category, base_value) for base_category, base_value in
+                 list_of_items]
+
+        for task in asyncio.as_completed(tasks):
+            result = await task
+            json_result = self.extract_json(result)
+            if json_result is not None:
+                yield json_result
 
 
 
-    async def maino(self,base_prompt=None):
-        base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
-        list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
-         Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
-         The answer should be one line follow this property structure : {{json_example}}"""
-
-        await self.generate_concurrently(base_prompt)
-    def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
+    # async def maino(self,base_prompt=None):
+    #     base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
+    #     list_of_items = [item.split("=") for item in base_prompt.split(";")]
+    #     prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
+    #      Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
+    #      The answer should be one line follow this property structure : {{json_example}}"""
+    #
+    #     await self.generate_concurrently(base_prompt)
+    async def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
+        import time
 
-        json_example = {"prompt":prompt,"tree":[{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}],"preference":[]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}],"preference":[]}],"preference":["quick"]}]}
-        json_str = str(json_example)
-        # json_str = json_str.replace("{", "{{").replace("}", "}}")
-        # prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are
-        # relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
-        #  Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement.
-        #  For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
-        #  Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,  in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
-        # """
+
 
         json_example = '<category1>=<decision1>;<category2>=<decision2>...'
-        # json_str = str(json_example)
-        # json_str = json_str.replace("{", "{{").replace("}", "}}")
-        prompt_template = """Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
+        prompt_template = """Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Only do one category at the time. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
@@ -431,50 +445,38 @@ class Agent():
             json_data = json.dumps(output)
             return json_data
         else:
-            base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
-            list_of_items = [item.split("=") for item in base_prompt.split(";")]
-            prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
-             Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
-             The answer should be one line follow this property structure : {{json_example}}"""
+            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+            print("HERE IS THE CHAIN RESULT", chain_result)
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                namespace='GOAL'
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            logging.info(str(chain_result))
+            retriever.add_documents([Document(page_content=chain_result,
+                                            metadata={'inserted_at': datetime.now(), "text": chain_result,
+                                                        'user_id': self.user_id}, namespace="GOAL")])
+            # chain_result=str(chain_result)
+            chain_result = json.dumps(chain_result)
+            start = time.time()
 
-            async def async_generate(self, prompt_template_base, base_category, base_value):
-                template = Template(prompt_template_base)
-                output = template.render(base_category=base_category, base_value=base_value)
-                complete_query = PromptTemplate.from_template(output)
-                chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
-                chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
-                # resp = await llm.agenerate(["Hello, how are you?"])
-                print(chain_result)
+            # print("HERE IS THE COMBINED JSON", combined_json)
+            end = time.time()
 
-            async def generate_concurrently(self, base_prompt):
-                llm = self.llm
-                base_prompt = """"meal_type=healthy;protein=chicken;price_range=over 125$;location=Manhattan """
-                list_of_items = [item.split("=") for item in base_prompt.split(";")]
-                tasks = [async_generate(llm, prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
-                await asyncio.gather(*tasks)
+            print(f"Execution time: {end - start} seconds")
+            #i want to run it here
+            return chain_result
 
-
-
-            async def maino(self,base_prompt):
-                await generate_concurrently(base_prompt)
-            #
-            # chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
-            # chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-            # print("HERE IS THE CHAIN RESULT", chain_result)
-            # vectorstore: Pinecone = Pinecone.from_existing_index(
-            #     index_name=self.index,
-            #     embedding=OpenAIEmbeddings(),
-            #     namespace='GOAL'
-            # )
-            # from datetime import datetime
-            # retriever = vectorstore.as_retriever()
-            # logging.info(str(chain_result))
-            # retriever.add_documents([Document(page_content=chain_result,
-            #                                 metadata={'inserted_at': datetime.now(), "text": chain_result,
-            #                                             'user_id': self.user_id}, namespace="GOAL")])
-            # # chain_result=str(chain_result)
-            # chain_result = json.dumps(chain_result)
-            # return chain_result
+    async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
+        """Serves to generate agent goals and subgoals based on a prompt"""
+        # combined_json = await self.generate_concurrently(prompt)
+        #
+        # return combined_json
+        async for result in self.generate_concurrently(prompt):
+            yield result
 
     def prompt_to_update_meal_tree(self,  category:str, from_:str, to_:str, model_speed:str):
 
@@ -1058,7 +1060,7 @@ if __name__ == "__main__":
     #agent.update_agent_summary(model_speed="slow")
     # agent.simple_agent_chain()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.maino())
+    loop.run_until_complete(agent.prompt_to_choose_meal_tree("I want a quick chicken meal under 100$ in Helsinki.", "slow"))
     loop.close()
 
     #print(result)
