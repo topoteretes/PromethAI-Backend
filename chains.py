@@ -392,6 +392,7 @@ class Agent():
             logging.info("HERE ARE THE valid RESULTS %s", len(results))
             print("HERE ARE THE valid RESULTS %s", len(results))
             # Parse each JSON string and add it to a list
+            results = [result[result.find('{'):result.rfind('}') + 1] for result in results]
             results_list = [json.loads(result) for result in results]
 
             # Put the list of results in a dictionary under the "results" key
