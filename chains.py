@@ -355,7 +355,7 @@ class Agent():
             return None  # if unsuccessful, return None
     async def async_generate(self, prompt_template_base, base_category, base_value):
         """Generates an individual solution choice """
-        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}], "preference": []}, {"category": "slow", "options": [{"category": "60 mins"}], "preference": ["quick"]}]}"""
+        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}]}, {"category": "slow", "options": [{"category": "60 mins"}]}]}"""
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
@@ -391,12 +391,6 @@ class Agent():
         else:
             logging.info("HERE ARE THE valid RESULTS %s", len(results))
             print("HERE ARE THE valid RESULTS %s", len(results))
-            # results_json =  "[" + results[0] + "]"
-            # import ast
-            # results_json = ast.literal_eval(results_json)
-            # for result in results_json:
-            #     combined_json = {"results": result}
-            #     return combined_json
             # Parse each JSON string and add it to a list
             results_list = [json.loads(result) for result in results]
 
