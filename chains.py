@@ -386,7 +386,8 @@ class Agent():
         results = await asyncio.gather(*tasks)
 
         if len(results) == 1:
-            results_json = "[" + results[0] + "]"
+            results_json = json.loads( results[0] )
+            return results_json
         else:
             logging.info("HERE ARE THE valid RESULTS %s", len(results))
             print("HERE ARE THE valid RESULTS %s", len(results))
