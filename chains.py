@@ -355,13 +355,12 @@ class Agent():
             return None  # if unsuccessful, return None
     async def async_generate(self, prompt_template_base, base_category, base_value):
         """Generates an individual solution choice """
-        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}],
-             "preference": []}, {"category": "slow", "options": [{"category": "60 mins"},"preference": ["quick"]}"""
+        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}], "preference": []}, {"category": "slow", "options": [{"category": "60 mins"}], "preference": ["quick"]}]}"""
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         # resp = await llm.agenerate(["Hello, how are you?"])
         print(chain_result)
@@ -387,16 +386,29 @@ class Agent():
         results = await asyncio.gather(*tasks)
 
         if len(results) == 1:
-            results_json=json.loads("[" + json.dumps(results[0]) + "]")
+            results_json = "[" + results[0] + "]"
         else:
+            logging.info("HERE ARE THE valid RESULTS %s", len(results))
+            print("HERE ARE THE valid RESULTS %s", len(results))
+            # results_json =  "[" + results[0] + "]"
+            # import ast
+            # results_json = ast.literal_eval(results_json)
+            # for result in results_json:
+            #     combined_json = {"results": result}
+            #     return combined_json
+            # Parse each JSON string and add it to a list
+            results_list = [json.loads(result) for result in results]
 
-            logging.info("HERE ARE THE valid RESults %s", type(results))
-            print("HERE ARE THE valid RESults %s", results[0])
-            results_json =  json.loads("[" + json.dumps(results[0]) + "]")
+            # Put the list of results in a dictionary under the "results" key
+            combined_json = {"results": results_list}
+            return combined_json
+        # results_json = list(results_json)
 
-        # Now you can concatenate these results into a single JSON
-        combined_json = {"results": results_json}
-        return combined_json
+        # print("here", results_json[0])
+
+        # # Now you can concatenate these results into a single JSON
+        # combined_json = {"results": results_json}
+        # return combined_json
 
         # tasks = [self.async_generate(prompt_template_base, base_category, base_value) for base_category, base_value in
         #          list_of_items]
