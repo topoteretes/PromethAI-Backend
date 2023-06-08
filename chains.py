@@ -375,6 +375,7 @@ class Agent():
          Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
+
         list_of_items = base_prompt.split(";")
 
         # If there is no ';', split on '=' instead
@@ -386,14 +387,13 @@ class Agent():
         results = await asyncio.gather(*tasks)
 
         if len(results) == 1:
-            results_json=results
+            results_json=json.loads("[" + json.dumps(results[0]) + "]")
         else:
 
-            logging.info("HERE ARE THE valid RESults %s", results)
-            results_json = results
-            # results_json = [self.extract_json(result) for result in results]
-            # results_json = [result for result in results_json if result is not None]
-        logging.info("HERE ARE THE valid RESults %s", results_json)
+            logging.info("HERE ARE THE valid RESults %s", type(results))
+            print("HERE ARE THE valid RESults %s", results[0])
+            results_json =  json.loads("[" + json.dumps(results[0]) + "]")
+
         # Now you can concatenate these results into a single JSON
         combined_json = {"results": results_json}
         return combined_json
@@ -1061,7 +1061,7 @@ if __name__ == "__main__":
     #agent.update_agent_summary(model_speed="slow")
     # agent.simple_agent_chain()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_to_choose_meal_tree("I want a quick chicken meal under 100$ in Helsinki.", "slow"))
+    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("location=Helsinki;price=cheap", "slow"))
     loop.close()
 
     #print(result)
