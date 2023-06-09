@@ -51,6 +51,7 @@ class Agent():
     load_dotenv()
     OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4"
     GPLACES_API_KEY = os.getenv("GPLACES_API_KEY", "")
+    ZAPIER_NLA_API_KEY =  os.environ["ZAPIER_NLA_API_KEY"] = os.environ.get("ZAPIER_NLA_API_KEY", "")
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
@@ -355,7 +356,9 @@ class Agent():
             return None  # if unsuccessful, return None
     async def async_generate(self, prompt_template_base, base_category, base_value):
         """Generates an individual solution choice """
-        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}]}, {"category": "slow", "options": [{"category": "60 mins"}]}]}"""
+        #json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}]}, {"category": "slow", "options": [{"category": "60 mins"}]}]}"""
+        json_example = """ {{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}}"""
+
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
@@ -370,7 +373,7 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
+        prompt_template_base = """Decompose decision point {{ base_category }} statement into relatable base decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. 
          Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
@@ -429,10 +432,22 @@ class Agent():
         """Serves to generate agent goals and subgoals based on a prompt"""
         import time
 
+# <<<<<<< HEAD
 
         json_example = '<category1>=<decision1>;<category2>=<decision2>...'
         prompt_template = """Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Only do one category at the time. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
+# =======
+#         json_example = {"prompt":prompt,"tree":[{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}],"preference":[]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}],"preference":[]}],"preference":["quick"]}]}
+#         json_str = str(json_example)
+#         json_str = json_str.replace("{", "{{").replace("}", "}}")
+#         prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are
+#         relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
+#          Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement exactly as it is.
+#          For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
+#          Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
+#         """
+# >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
 
 
         self.init_pinecone(index_name=self.index)
@@ -463,16 +478,33 @@ class Agent():
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
 
-            # chain_result=str(chain_result)
-            chain_result = json.dumps(chain_result)
-            start = time.time()
+#             # chain_result=str(chain_result)
+#             chain_result = json.dumps(chain_result)
+#             start = time.time()
+#
+#             # print("HERE IS THE COMBINED JSON", combined_json)
+#             end = time.time()
+#
+#             print(f"Execution time: {end - start} seconds")
+#             #i want to run it here
+#             return chain_result
+# =======
+        
+            return chain_result.replace("'", '"')
+# # >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
+# =======
 
-            # print("HERE IS THE COMBINED JSON", combined_json)
-            end = time.time()
+#             # chain_result=str(chain_result)
+#             chain_result = json.dumps(chain_result)
+#             start = time.time()
 
-            print(f"Execution time: {end - start} seconds")
-            #i want to run it here
-            return chain_result
+#             # print("HERE IS THE COMBINED JSON", combined_json)
+#             end = time.time()
+
+#             print(f"Execution time: {end - start} seconds")
+#             #i want to run it here
+#             return chain_result
+# >>>>>>> main
 
 
     async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
@@ -528,9 +560,8 @@ class Agent():
         # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
         review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
         review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
+        return review_chain_result.replace("'", '"')
 
-        json_data = json.dumps(review_chain_result)
-        return json_data
 
 
      # def goal_generation(self, factors: dict, model_speed:str):
@@ -757,6 +788,17 @@ class Agent():
             # json_data = json.dumps(final_output)
             # return json_data
 
+    def add_zapier_calendar_action(self, context=None):
+
+        from langchain.agents.agent_toolkits import ZapierToolkit
+        from langchain.agents import AgentType
+        from langchain.utilities.zapier import ZapierNLAWrapper
+        zapier = ZapierNLAWrapper()
+        toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+        agent = initialize_agent(toolkit.get_tools(), self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        agent.run("Search for and play easy cooking music on Spotify, where rock is search term and Spotify is the app")
+
+        #'https://api.spotify.com/v1/search?q=easy+cooking+music&type=playlist&limit=1'
     def voice_text_input_imp(self, query: str, model_speed: str):
 
         """Serves to generate sub goals for the user and drill down into it"""
@@ -1045,14 +1087,6 @@ class Agent():
         """Serves to update agent traits so that they can be used in summary"""
         return
 
-    # checker_chain = LLMSummarizationCheckerChain(llm=llm, verbose=True, max_checks=2)
-    # text = """
-    # Your 9-year old might like these recent discoveries made by The James Webb Space Telescope (JWST):
-    # • In 2023, The JWST spotted a number of galaxies nicknamed "green peas." They were given this name because they are small, round, and green, like peas.
-    # • The telescope captured images of galaxies that are over 13 billion years old. This means that the light from these galaxies has been traveling for over 13 billion years to reach us.
-    # • JWST took the very first pictures of a planet outside of our own solar system. These distant worlds are called "exoplanets." Exo means "from outside."
-    # These discoveries can spark a child's imagination about the infinite wonders of the universe."""
-    # checker_chain.run(text)
     def _retrieve_summary(self):
         """Serves to retrieve agent summary"""
         self.init_pinecone(index_name=self.index)
@@ -1071,10 +1105,10 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
-    # agent.simple_agent_chain()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("location=Helsinki;price=cheap", "slow"))
-    loop.close()
+    agent.voice_text_input_imp()
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("location=Helsinki;price=cheap", "slow"))
+    # loop.close()
 
     #print(result)
     # agent._test()
