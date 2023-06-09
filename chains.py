@@ -51,6 +51,7 @@ class Agent():
     load_dotenv()
     OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4"
     GPLACES_API_KEY = os.getenv("GPLACES_API_KEY", "")
+    ZAPIER_NLA_API_KEY =  os.environ["ZAPIER_NLA_API_KEY"] = os.environ.get("ZAPIER_NLA_API_KEY", "")
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
@@ -753,6 +754,17 @@ class Agent():
             # json_data = json.dumps(final_output)
             # return json_data
 
+    def add_zapier_calendar_action(self, context=None):
+
+        from langchain.agents.agent_toolkits import ZapierToolkit
+        from langchain.agents import AgentType
+        from langchain.utilities.zapier import ZapierNLAWrapper
+        zapier = ZapierNLAWrapper()
+        toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+        agent = initialize_agent(toolkit.get_tools(), self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        agent.run("Search for and play easy cooking music on Spotify, where rock is search term and Spotify is the app")
+
+        #'https://api.spotify.com/v1/search?q=easy+cooking+music&type=playlist&limit=1'
     def voice_text_input_imp(self, query: str, model_speed: str):
 
         """Serves to generate sub goals for the user and drill down into it"""
@@ -1067,10 +1079,10 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
-    # agent.simple_agent_chain()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("location=Helsinki;price=cheap", "slow"))
-    loop.close()
+    agent.voice_text_input_imp()
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("location=Helsinki;price=cheap", "slow"))
+    # loop.close()
 
     #print(result)
     # agent._test()
