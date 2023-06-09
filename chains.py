@@ -434,7 +434,6 @@ class Agent():
 
 # <<<<<<< HEAD
 
-
         json_example = '<category1>=<decision1>;<category2>=<decision2>...'
         prompt_template = """Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Only do one category at the time. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
@@ -449,6 +448,7 @@ class Agent():
 #          Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
 #         """
 # >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
+
 
         self.init_pinecone(index_name=self.index)
         # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
@@ -477,7 +477,7 @@ class Agent():
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
-# <<<<<<< HEAD
+
 #             # chain_result=str(chain_result)
 #             chain_result = json.dumps(chain_result)
 #             start = time.time()
@@ -491,7 +491,21 @@ class Agent():
 # =======
         
             return chain_result.replace("'", '"')
-# >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
+# # >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
+# =======
+
+#             # chain_result=str(chain_result)
+#             chain_result = json.dumps(chain_result)
+#             start = time.time()
+
+#             # print("HERE IS THE COMBINED JSON", combined_json)
+#             end = time.time()
+
+#             print(f"Execution time: {end - start} seconds")
+#             #i want to run it here
+#             return chain_result
+# >>>>>>> main
+
 
     async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
@@ -546,13 +560,9 @@ class Agent():
         # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
         review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
         review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
-# <<<<<<< HEAD
-#         json_data = json.dumps(review_chain_result)
-#         return json_data
-# =======
-        print("HERE IS THE OUTPUT", review_chain_result)
         return review_chain_result.replace("'", '"')
-# >>>>>>> 74b4cf710c42a74567dd8ecc95d851436520f2dd
+
+
 
      # def goal_generation(self, factors: dict, model_speed:str):
      #
