@@ -430,10 +430,10 @@ class Agent():
         import time
 
 
-
         json_example = '<category1>=<decision1>;<category2>=<decision2>...'
         prompt_template = """Decompose {{ prompt_str }} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. Return the decisions exactly as they are in the prompt. Only do one category at the time. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
+
 
         self.init_pinecone(index_name=self.index)
         # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
@@ -462,6 +462,7 @@ class Agent():
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
+
             # chain_result=str(chain_result)
             chain_result = json.dumps(chain_result)
             start = time.time()
@@ -472,6 +473,7 @@ class Agent():
             print(f"Execution time: {end - start} seconds")
             #i want to run it here
             return chain_result
+
 
     async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
@@ -526,8 +528,10 @@ class Agent():
         # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
         review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
         review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
+
         json_data = json.dumps(review_chain_result)
         return json_data
+
 
      # def goal_generation(self, factors: dict, model_speed:str):
      #
