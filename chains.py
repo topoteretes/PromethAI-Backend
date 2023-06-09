@@ -356,7 +356,9 @@ class Agent():
             return None  # if unsuccessful, return None
     async def async_generate(self, prompt_template_base, base_category, base_value):
         """Generates an individual solution choice """
-        json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}]}, {"category": "slow", "options": [{"category": "60 mins"}]}]}"""
+        #json_example = """{"category": "time", "options": [{"category": "quick", "options": [{"category": "1 min"}, {"category": "10 mins"}, {"category": "30 mins"}]}, {"category": "slow", "options": [{"category": "60 mins"}]}]}"""
+        json_example = """ {{"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}}"""
+
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example)
@@ -371,7 +373,7 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """Decompose {{ base_category }} and a {{base_value}} statement into decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points.
+        prompt_template_base = """Decompose decision point {{ base_category }} statement into relatable base decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. 
          Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
