@@ -1,16 +1,14 @@
+from chains import Agent
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import uvicorn
-import os
-
-from dotenv import load_dotenv
-import logging
 from typing import Dict, Any
-
-from chains import Agent
 import asyncio
 import json
+import logging
+import os
+import uvicorn
 
 CANNED_RESPONSES=False
 
@@ -24,12 +22,6 @@ logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 
 
-# def establish_connection():
-#     AGENT_NAME = os.getenv("AGENT_NAME") or "my-agent"
-#
-#     agent = Agento(AGENT_NAME)
-#     agent.createIndex()
-#     return agent
 load_dotenv()
 
 
@@ -50,27 +42,15 @@ async def root():
 
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict:
-
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     loop = asyncio.get_event_loop()
     output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
-    # loop.close()
     return JSONResponse(content={"response":output})
-    # async def stream():
-    #     async for output in agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"]):
-    #         yield json.dumps({"response": output}).encode("utf-8")
-    # return StreamingResponse(stream())
 
 @app.post("/prompt-to-update-meal-tree", response_model=dict)
 async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
-    # if CANNED_RESPONSES:
-    #     with open('fixtures/update_meal_tree_response.json', 'r') as f:
-    #         json_data = json.load(f)
-    #         stripped_string_dict = {"response": json_data}
-    #         return JSONResponse(content=stripped_string_dict)
-
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
@@ -120,6 +100,22 @@ async def voice_input(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.voice_input(query=json_payload["query"], model_speed= json_payload["model_speed"])
+    return JSONResponse(content={"response":json.loads(output)})
+
+@app.post("/prompt-to-choose-meal-tree", response_model=dict)
+async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
+    if CANNED_RESPONSES:
+        with open('fixtures/choose_meal_tree_response.json', 'r') as f:
+            json_data = json.load(f)
+            stripped_string_dict = {"response": json_data}
+            return JSONResponse(content=stripped_string_dict)
+
+
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    output = agent.prompt_to_choose_meal_tree(json_payload["prompt"], model_speed= json_payload["model_speed"])
+
     return JSONResponse(content={"response":json.loads(output)})
 
 @app.get("/health")
