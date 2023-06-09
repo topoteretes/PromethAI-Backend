@@ -469,7 +469,8 @@ class Agent():
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
-                namespace='GOAL'
+                namespace='GOAL',
+
             )
             from datetime import datetime
             retriever = vectorstore.as_retriever()
