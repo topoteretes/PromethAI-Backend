@@ -13,7 +13,7 @@ import subprocess
 import datetime
 # Initialize Text Splitter
 text_splitter = NLTKTextSplitter(chunk_size=2500)
-from gptrim import trim
+
 
 # Load default environment variables (.env)
 load_dotenv()

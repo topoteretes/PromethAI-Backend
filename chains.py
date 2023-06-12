@@ -69,7 +69,7 @@ class Agent():
         self.openai_model35 = "gpt-3.5-turbo"
         self.openai_model4 = "gpt-4"
         self.llm35_fast = ChatOpenAI(temperature=0.0,max_tokens = 650, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
-        self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 800, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
+        self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
         self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
@@ -262,7 +262,36 @@ class Agent():
         chain_output = chain.run(name= self.user_id).strip()
         return chain_output
 
+    def prompt_correction(self, prompt_source:str, model_speed:str):
+        """Makes the prompt gramatically correct"""
 
+        prompt = """ Gramatically correct sentence: {{prompt_source}}
+        """
+        # self.init_pinecone(index_name=self.index)
+        # agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
+        template = Template(prompt)
+        output = template.render(prompt_source=prompt_source)
+        # complete_query = str(agent_summary) + output
+        # complete_query =  output
+        complete_query = PromptTemplate.from_template(output)
+
+        chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
+        chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+        # vectorstore: Pinecone = Pinecone.from_existing_index(
+        #     index_name=self.index,
+        #     embedding=OpenAIEmbeddings(),
+        #     namespace='GOAL'
+        # )
+        # from datetime import datetime
+        # retriever = vectorstore.as_retriever()
+        # retriever.add_documents([Document(page_content=chain_result,
+        #                                   metadata={'inserted_at': datetime.now(), "text": chain_result,
+        #                                             'user_id': self.user_id}, namespace="GOAL")])
+        #
+
+
+        json_data = json.dumps(chain_result)
+        return json_data
     def solution_generation(self, factors:dict, model_speed:str):
         """Generates a solution choice"""
         import time
@@ -373,8 +402,8 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """Decompose decision point {{ base_category }} statement into relatable base decision points that are relevant to statement above, personal to the user and related to food. Find categories for the decisions points. 
-         Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
+        prompt_template_base = """Decompose decision point {{ base_category }} statement into relatable base decision points that are relevant to statement above, personal to the user and related to food.
+         For each of the  decisions points  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Return the decisions exactly as they are in the prompt. Decisions can be expressions not just single words.
          The answer should be one line follow this property structure : {{json_example}}"""
 
 
@@ -463,7 +492,7 @@ class Agent():
             json_data = json.dumps(output)
             return json_data
         else:
-            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             print("HERE IS THE CHAIN RESULT", chain_result)
             vectorstore: Pinecone = Pinecone.from_existing_index(
