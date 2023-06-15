@@ -125,15 +125,15 @@ async def restaurant_request(request_data: Payload) -> dict:
     output = agent.restaurant_generation(json_payload["prompt"], model_speed="slow")
     return JSONResponse(content={"response":{"restaurants": output}});
 
-@app.post("/delivery-request", response_model=dict)
-async def delivery_request(request_data: Payload) -> dict:
-    json_payload = request_data.payload
-    # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.delivery_generation( json_payload["prompt"], zipcode=json_payload["zipcode"], model_speed="slow")
-    print("HERE IS THE OUTPUT", output)
-    return JSONResponse(content={"response": {"url": output}})
+# @app.post("/delivery-request", response_model=dict)
+# async def delivery_request(request_data: Payload) -> dict:
+#     json_payload = request_data.payload
+#     # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     output = await agent.delivery_generation( json_payload["prompt"], zipcode=json_payload["zipcode"], model_speed="slow")
+#     print("HERE IS THE OUTPUT", output)
+#     return JSONResponse(content={"response": {"url": output}})
 
 @app.post("/voice-input", response_model=dict)
 async def voice_input(request_data: Payload) -> dict:

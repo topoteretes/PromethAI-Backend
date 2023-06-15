@@ -601,9 +601,9 @@ class Agent():
         restaurant_list = [self.extract_info(r) for r in restaurants]
         print('HERE IS THE OUTPUT', restaurant_list)
         return restaurant_list
-    async def run_wolt_tool(self, zipcode, chain_result):
-        from food_scrapers import  wolt_tool
-        return wolt_tool.main(zipcode, chain_result)
+    # async def run_wolt_tool(self, zipcode, chain_result):
+    #     from food_scrapers import  wolt_tool
+    #     return wolt_tool.main(zipcode, chain_result)
     async def delivery_generation(self, prompt: str, zipcode:str, model_speed:str):
         """Serves to optimize agent delivery recommendations"""
 
