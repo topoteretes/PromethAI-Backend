@@ -1,27 +1,152 @@
 # PromethAI
 
 
+<p align="center">
+  <a href="https://prometh.ai//#gh-light-mode-only">
+    <img src="assets/topoteretes_logo.png" width="10%" alt="promethAI logo" />
+  </a>
+  <a href="https://topoteretes.com//#gh-dark-mode-only">
+    <img src="assets/topoteretes_logo.png" width="10%" alt="topoteretes logo" />
+  </a>
+
+  
+</p>
+
+<p align="center"><i>Open-source framework that gives you AI Agents that help you navigate decision-making, get personalized goals and  execute them </i></p>
+
+<p align="center">
+<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/fork" target="blank">
+<img src="https://img.shields.io/github/forks/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI forks"/>
+</a>
+
+<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/stargazers" target="blank">
+<img src="https://img.shields.io/github/stars/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI stars"/>
+</a>
+<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/pulls" target="blank">
+<img src="https://img.shields.io/github/issues-pr/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI pull-requests"/>
+</a>
+<a href='https://github.com/topoteretes/PromethAI-Backend-Backend/releases'>
+<img src='https://img.shields.io/github/release/topoteretes/PromethAI-Backend-Backend?&label=Latest&style=for-the-badge'>
+</a>
+
+<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/commits" target="blank">
+<img src="https://img.shields.io/github/commits-since/topoteretes/PromethAI-Backend-Backend/v0.0.3.svg?style=for-the-badge" alt="promethAI Commits"/>
+</a>
+
+</p>
+
+[//]: # (<p align="center"><b>Follow PromethAI </b></p>)
+
+[//]: # (<p align="center">)
+
+[//]: # (<a href="https://twitter.com/_promethAI" target="blank">)
+
+[//]: # (<img src="https://img.shields.io/twitter/follow/_promethAI?label=Follow: _promethAI&style=social" alt="Follow _promethAI"/>)
+
+[//]: # (</a>)
+
+[//]: # (<p align="center">)
+
+[//]: # (<a href="https://prometh.ai" target="_blank"><img src="https://img.shields.io/twitter/url?label=promethAI Website&logo=website&style=social&url=https://github.com/topoteretes/PromethAI-Backend-Backend"/></a>)
+
+[//]: # (<p align="center">)
+
+[//]: # (<a href="https://www.youtube.com/@_promethAI" target="_blank"><img src="https://img.shields.io/twitter/url?label=Youtube&logo=youtube&style=social&url=https://github.com/topoteretes/PromethAI-Backend-Backend"/></a>)
+
+[//]: # (</p>)
+
+
+<p align="center"><b>Share promethAI Repository</b></p>
+
+<p align="center">
+
+<a href="https://twitter.com/intent/tweet?text=Check%20this%20GitHub%20repository%20out.%20promethAI%20-%20Let%27s%20you%20easily%20build,%20manage%20and%20run%20useful%20autonomous%20AI%20agents.&url=https://github.com/topoteretes/PromethAI-Backend-Backend&hashtags=promethAI,AGI,Autonomics,future" target="blank">
+<img src="https://img.shields.io/twitter/follow/_promethAI?label=Share Repo on Twitter&style=social" alt="Follow _promethAI"/></a> 
+<a href="https://t.me/share/url?text=Check%20this%20GitHub%20repository%20out.%20promethAI%20-%20Let%27s%20you%20easily%20build,%20manage%20and%20run%20useful%20autonomous%20AI%20agents.&url=https://github.com/topoteretes/PromethAI-Backend" target="_blank"><img src="https://img.shields.io/twitter/url?label=Telegram&logo=Telegram&style=social&url=https://github.com/topoteretes/PromethAI-Backend" alt="Share on Telegram"/></a>
+<a href="https://api.whatsapp.com/send?text=Check%20this%20GitHub%20repository%20out.%20promethAI%20-%20Let's%20you%20easily%20build,%20manage%20and%20run%20useful%20autonomous%20AI%20agents.%20https://github.com/topoteretes/PromethAI-Backend"><img src="https://img.shields.io/twitter/url?label=whatsapp&logo=whatsapp&style=social&url=https://github.com/topoteretes/PromethAI-Backend" /></a> <a href="https://www.reddit.com/submit?url=https://github.com/topoteretes/PromethAI-Backend&title=Check%20this%20GitHub%20repository%20out.%20promethAI%20-%20Let's%20you%20easily%20build,%20manage%20and%20run%20useful%20autonomous%20AI%20agents.
+" target="blank">
+<img src="https://img.shields.io/twitter/url?label=Reddit&logo=Reddit&style=social&url=https://github.com/topoteretes/PromethAI-Backend" alt="Share on Reddit"/>
+</a> <a href="mailto:?subject=Check%20this%20GitHub%20repository%20out.&body=promethAI%20-%20Let%27s%20you%20easily%20build,%20manage%20and%20run%20useful%20autonomous%20AI%20agents.%3A%0Ahttps://github.com/topoteretes/PromethAI-Backend" target="_blank"><img src="https://img.shields.io/twitter/url?label=Gmail&logo=Gmail&style=social&url=https://github.com/topoteretes/PromethAI-Backend"/></a> <a href="https://www.buymeacoffee.com/promethAI" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="23" width="100" style="border-radius:1px"></a>
+
+</p>
+
+<hr>
+
+## 💡 Features
+
+- Optimized for Autonomous Agents
+- Personalized for each user
+- Introduces decision trees to help user navigate and decide on a solution
+- Runs asynchronusly
+- For App builds, check out this repo [promethAI-GUI](https://github.com/topoteretes/PromethAI-Backend-Mobile)
+- Supports automating tasks and executing decisions
+- Multiple Vector DBs supported trough Langchain 
+- Low latency
+- Easy to use
+- Easy to deploy
+
+## 💻 Screenshots
+
+
+<p align="center">
+  <a href="https://prometh.ai">
+    <img src="assets/img_5.png" alt="Description1" width="15%" height="50%" />
+    <img src="assets/img_1.png" alt="Description2" width="15%" height="50%" />
+    <img src="assets/img_2.png" alt="Description3" width="15%" height="50%" />
+    <img src="assets/img_3.png" alt="Description4" width="15%" height="50%" />
+    <img src="assets/img_4.png" alt="Description4" width="15%" height="50%" />
+  </a>
+</p>
+
+
+<p align="center">
+  <a href="https://prometh.ai">Visit and sign up for the closed Beta at prometh.ai</a>
+</p>
+
+
+## 🛣 Roadmap
+<p align="center">
+  <img src="assets/roadmap.png" alt="Topoteretes Roadmap" width="50%" height="50%">
+</p>
+
+
+## ⚙️ Setting up
+
+1. Download the repo using `git clone https://github.com/topoteretes/PromethAI-Backend-Backend.git` in your terminal or directly from github page in zip format.
+2. Navigate to the directory using `cd PromethAI-Backend` and create a copy of `.env.template` and name it `.env`.
+3. Enter your unique OpenAI API Key, Google key, Custom search engine ID without any quotes or spaces in `.env` file. Follow the links below to get your keys:
+
+| Keys                        | Accessing the keys                                                                                                                                                                                                |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **OpenAI API Key**          | Sign up and create an API key at [OpenAI Developer](https://beta.openai.com/signup/)                                                                                                                              |
+| **Pinecone API Key**        | Sign up and create an API key at [Pinecone.io](https://www.pinecone.io/)                                                                                                                                          |
+| **Google API key**          | Create a project in the [Google Cloud Console](https://console.cloud.google.com/) and enable the API you need (for example: Google Custom Search JSON API). Then, create an API key in the "Credentials" section. |
+| **Custom search engine ID** | Visit [Google Programmable Search Engine](https://programmablesearchengine.google.com/about/) to create a custom search engine for your application and obtain the search engine ID.                              |
+
+4. Ensure that Docker and Docker Compose are installed in your system, if not, Install it from [here](https://docs.docker.com/get-docker/). 
+5. Once you have Docker Desktop running, run command : `docker-compose up promethai --build` in promethai directory. Open your browser and go to `localhost:3000` to see promethAI running.
+
 PromethAI is a Python-based AGI (artificial general intelligence) project that recommends food choices based on a user's goals and preferences, and can modify its recommendations based on user feedback.
 The project is built on top of an existing AGI project, and redone using Langchain library that uses OpenAI and Pinecone to give memory to the AI agent, and allows it to "think" before making an action (outputting text).
 
 In the modified version, which we can call "PromethAI", the original project has been adapted to focus on food recommendations. The AI agent now has the ability to suggest meal options based on a user's specified goal, 
-such as a fast meal, a tasty meal, or a healthy meal. It also has the ability to retrieve a list of restaurants from Google Maps and suggest matching food options based on the user's preferences.
+such as a fast meal, a tasty meal, or a healthy meal. 
+
+The agent can also suggest meal options based on a user's preferences, such as a user's favorite cuisine or a user's favorite restaurant.
+It also has the ability to retrieve a list of restaurants from Google Maps and suggest matching food options based on the user's preferences.
 
 Overall, PromethAI is a practical application of AGI technology that has the potential to help users make informed food choices based on their goals and preferences.
 
-Credits: 
-Teenage AGI -> https://github.com/seanpixel/Teenage-AGI
-Baby AGI -> https://github.com/yoheinakajima/babyagi
 
 
-## Objective
-Inspired by the several Auto-GPT related projects (predominently BabyAGI) and the Paper ["Generative Agents: Interactive Simulacra of Human Behavior"](https://arxiv.org/abs/2304.03442), the original python project uses OpenAI and Pinecone to Give memory to an AI agent and also allows it to "think" before making an action (outputting text). 
+## Resources
+Papers like ["Generative Agents: Interactive Simulacra of Human Behavior"](https://arxiv.org/abs/2304.03442)
 
 
 ## Quick start 
-API_ENABLED switches between API and version that works using commandline 
+Make sure to add your credentions in the .env file.Launch the app with:
 
-```docker-compose build --build-arg API_ENABLED=True teenage-agi```
+```docker-compose build promethai && docker-compose up promethai```
 
 
 
@@ -34,32 +159,21 @@ Here is what happens everytime the AI is queried by the user:
 5. Based on the thought from Step 3 and relevant memories from Step 2, AI generates an output
 6. AI stores the current query and its answer in its Pinecone vector database memory
 
-## How to Use
-1. Clone the repository via `git clone https://github.com/seanpixel/Teenage-AGI.git` and cd into the cloned repository.
-2. Install required packages by doing: pip install -r requirements.txt
-3. Create a .env file from the template `cp .env.template .env`
-4. `open .env` and set your OpenAI and Pinecone API, Google Maps API key and Replicate API token
-5. Run the script by launching a docker container with
+## How to use
 ```
-docker-compose build --build-arg  promethai
+docker-compose build  promethai
 ```
 6. Access the API by doing CURL requests, example: 
 ```
 curl -X POST "http://0.0.0.0:8000/data-request" -H "Content-Type: application/json" --data-raw 
 
 ```
-## List of available endpoints
+## Example of available endpoint
 
-The available endpoints in the provided code are:
+The available endpoint:
 ```
-POST request to '/variate-diet-assumption' endpoint that takes a JSON payload containing 'user_id', 'session_id' and 'variate_assumption' keys, and returns a JSON response with a 'response' key.
-POST request to '/variate-food-goal' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors', and 'variate_goal' keys, and returns a JSON response with a 'response' key.
 POST request to '/recipe-request' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors' keys, and returns a JSON response with a 'response' key.
-POST request to '/restaurant-request' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors' keys, and returns a JSON response with a 'response' key.
-POST request to '/delivery-request' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors', and 'zipcode' keys, and returns a JSON response with a 'response' key.
-POST request to '/solution-request' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors', and 'model_speed' keys, and returns a JSON response with a 'response' key.
-POST request to '/generate-diet-goal' endpoint that takes a JSON payload containing 'user_id', 'session_id', and 'model_speed' keys, and returns a JSON response with a 'response' key.
-POST request to '/generate-diet-sub-goal' endpoint that takes a JSON payload containing 'user_id', 'session_id', 'factors', and 'model_speed' keys, and returns a JSON response with a 'response' key.
+
 ```
 All endpoints receive a payload in JSON format and return a response in JSON format.
 
@@ -69,60 +183,16 @@ curl --location --request POST 'http://0.0.0.0:8000/recipe-request' \
 --header 'Content-Type: application/json' \
 --data-raw '{
   "payload": {
-    "user_id": "657",
-    "session_id": "456",
+    "user_id": "659",
+    "session_id": "459",
     "model_speed":"slow",
-    "factors": [
-      {
-        "name": "time",
-        "amount": 90
-      },
-      {
-        "name": "cost",
-        "amount": 50
-      },
-      {
-        "name": "health",
-        "amount": 95
-      }
-    ]
+    "prompt":"I would like a healthy chicken meal over 125$"
+    
   }
 }'
 ```
 
-```
-curl --location --request POST 'http://0.0.0.0:8000/generate-diet-goal' \
---header 'Content-Type: application/json' \
---data-raw '{"payload": {"user_id": "658", "session_id": "457", "model_speed":"slow"}}'
-```
-```
-curl --location --request POST 'http://0.0.0.0:8000/variate-assumption' \
---header 'Content-Type: application/json' \
---data-raw '{"payload": {"user_id": "657", "session_id": "456", "variate_assumption": "Remove {{Assumption}} from the list of assumptions"}}'
-```
 
-```
-curl --location --request POST 'http://0.0.0.0:8000/generate-diet-sub-goal' \
---header 'Content-Type: application/json' \
---data-raw '{
-  "payload": {
-    "user_id": "657",
-    "session_id": "456",
-    "model_speed": "slow",
-    "factors": [
-      {
-        "name": "Portion Control"
-      },
-      {
-        "name": "Cuisine"
-      },
-      {
-        "name": "Macronutrients"
-      }
-    ]
-  }
-}'
-```
 
 # 🔰 Notice
 
@@ -136,12 +206,14 @@ Given its experimental nature, PromethAI may generate content or perform actions
 
 By utilizing PromethAI, you agree to protect, defend, and absolve the creators, contributors, and any affiliated parties from any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) that arise from your use of this software or your violation of these terms.
 
-🐦 Engage With Us on Twitter
-Stay in the loop with the latest news, updates, and insights about PromethAI by following our Twitter profiles. Interact with both the developer and the AI's own account for stimulating discussions, project updates, and more.
+# 📝 License
 
-Developer: Follow @tricalt for a sneak peek into the developmental journey, project updates, and related subjects from the brains behind Entrepreneur-GPT.
-We're excited to connect with you and hear your ideas, thoughts, and experiences with PromethAI. Join the conversation on Twitter and let's shape the future of AI collectively!
-brew install act
-```
+MIT License
+
+
+# Credits: 
+Teenage AGI -> https://github.com/seanpixel/Teenage-AGI
+Baby AGI -> https://github.com/yoheinakajima/babyagi
+
 
 

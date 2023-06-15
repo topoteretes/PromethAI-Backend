@@ -55,30 +55,13 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.prompt_to_choose_meal_tree(json_payload["prompt"], model_speed= json_payload["model_speed"])
+    output = agent.prompt_to_choose_meal_tree(json_payload["prompt"], model_speed= json_payload["model_speed"],assistant_category="food")
 
     result = json.dumps({"results": list(map(splitter, output.replace('"', '').split(";")))})
 
     return JSONResponse(content={"response":json.loads(result)})
 
 
-@app.post("/prompt-to-choose-meal-tree", response_model=dict)
-async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
-    if CANNED_RESPONSES:
-        with open('fixtures/choose_meal_tree_response.json', 'r') as f:
-            json_data = json.load(f)
-            stripped_string_dict = {"response": json_data}
-            return JSONResponse(content=stripped_string_dict)
-
-
-    json_payload = request_data.payload
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.prompt_to_choose_meal_tree(json_payload["prompt"], model_speed= json_payload["model_speed"])
-
-    return JSONResponse(content={"response":output})
-from typing import Any, Generator
-from starlette.responses import StreamingResponse
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict:
     json_payload = request_data.payload
@@ -104,6 +87,15 @@ async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.prompt_to_update_meal_tree(json_payload["category"], json_payload["from"], json_payload["to"], model_speed= json_payload["model_speed"])
+    print("HERE IS THE OUTPUT", output)
+    return JSONResponse(content={"response":output})
+
+@app.post("/fetch-user-summary", response_model=dict)
+async def fetch_user_summary(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    output = agent.fetch_user_summary( model_speed= json_payload["model_speed"])
     print("HERE IS THE OUTPUT", output)
     return JSONResponse(content={"response":output})
 
@@ -149,7 +141,7 @@ async def voice_input(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     output = agent.voice_input(query=json_payload["query"], model_speed= json_payload["model_speed"])
-    return JSONResponse(content={"response":json.loads(output)})
+    return JSONResponse(content={"response":output})
 
 @app.get("/health")
 def health_check():
