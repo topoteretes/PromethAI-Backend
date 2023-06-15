@@ -26,8 +26,8 @@ RUN apt-get update -q && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 
-RUN playwright install
-RUN playwright install-deps
+#RUN playwright install
+#RUN playwright install-deps
 
 WORKDIR /app
 COPY . /app
