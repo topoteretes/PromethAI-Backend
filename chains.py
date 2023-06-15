@@ -278,7 +278,7 @@ class Agent():
             output = self.replicate_llm(output)
             return output
         else:
-            chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
+            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             #
             # vectorstore: Pinecone = Pinecone.from_existing_index(
@@ -322,7 +322,7 @@ class Agent():
         print(chain_result)
         json_o = json.loads(chain_result)
         value_list = [{"category": value} for value in base_value.split(',')]
-        json_o["options"].append({"category": "Your preferences", "options": value_list})
+        # json_o["options"].append({"category": "Your preferences", "options": value_list})
         chain_result = json.dumps(json_o)
         print("FINAL CHAIN",chain_result)
         return chain_result
