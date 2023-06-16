@@ -307,22 +307,9 @@ class Agent():
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category)
-        output = """ Decompose decision point '{initial_breakdown} ' """ + output
-        prompt_templateo = PromptTemplate(input_variables=["initial_breakdown"], template=output)
-
-        # complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm35_fast, prompt=prompt_templateo, verbose=self.verbose)
-        fix_json_template = """ Take input {base_valueo} Provide response in JSON format with proper syntax in maximum three lines with no whitespaces. Follow this structure : {{json_example}} Do not write anything else"""
-        template_json = Template(fix_json_template)
-        output_json = template_json.render( json_example=json_example)
-        prompt_template = PromptTemplate(input_variables=["base_valueo"], template=output_json)
-        chain_json = LLMChain(llm=self.llm_fast, prompt=prompt_template, verbose=self.verbose)
-        # prompt_template = PromptTemplate(input_variables=["synopsis", "base_value"], template=template)
-        # correction_chain = LLMChain(llm=self.llm35_fast, prompt=prompt_template, verbose=self.verbose)
-        overall_chain = SimpleSequentialChain(chains=[chain, chain_json], verbose=True)
-        chain_result = await overall_chain.arun(str(base_category) )
-        # chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
-        # resp = await llm.agenerate(["Hello, how are you?"])
+        complete_query = PromptTemplate.from_template(output)
+        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+        chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         print("here it is",chain_result)
         json_o = json.loads(chain_result)
         value_list = [{"category": value} for value in base_value.split(',')]
@@ -335,7 +322,8 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" into three relevant decision categories each  that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, don't provide unrelevant values, For each of the options  provide a mind map representation of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate output with no whitespaces, very short text"""
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three relevant decision categories each that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide irrelevant values. 
+        For each of the options provide a mind map representation of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         # prompt_template_base = """  Decompose decision point '{{ base_category }}' statement into relatable base decision points that have to do with {{ assistant_category }}.
         #  For each of the  decisions points  provide a mind map representation of the three secondary nodes  related to {{ assistant_category }} that can be used to narrow down the choice better.
         #  The answer should be one line follow this property structure : {{json_example}}"""
