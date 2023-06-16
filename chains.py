@@ -1,6 +1,5 @@
 from langchain.prompts import PromptTemplate
-from concurrent.futures import ThreadPoolExecutor
-import functools
+
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict
@@ -29,6 +28,7 @@ import tiktoken
 import asyncio
 import logging
 from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
 
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
@@ -37,9 +37,6 @@ from langchain.utilities.zapier import ZapierNLAWrapper
 from langchain.cache import RedisSemanticCache
 import langchain
 import redis
-
-
-import subprocess
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -69,10 +66,10 @@ class Agent():
         self.memory = None
         self.thought_id_timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "gpt-3.5-turbo"
+        self.openai_model35 = "text-davinci-003"
         self.openai_model4 = "gpt-4"
-        self.llm35_fast = ChatOpenAI(temperature=0.0,max_tokens = 750, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
-        self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
+        self.llm35_fast = OpenAI(temperature=0.0,max_tokens = 1050, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
+        self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 800, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
         self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
@@ -81,9 +78,9 @@ class Agent():
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
-        from langchain.cache import RedisCache
-        from redis import Redis
-        langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
+        # from langchain.cache import RedisCache
+        # from redis import Redis
+        # langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
 
     def set_user_session(self, user_id: str, session_id: str) -> None:
         self.user_id = user_id
@@ -267,7 +264,7 @@ class Agent():
 
         json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
         prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
-                 Answer a condensed JSON in this format: {{ json_example}}  Do not explain or write anything else."""
+                 Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else."""
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_base)
         output = template.render(prompt=prompt, json_example=json_example)
@@ -278,7 +275,7 @@ class Agent():
             output = self.replicate_llm(output)
             return output
         else:
-            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+            chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             #
             # vectorstore: Pinecone = Pinecone.from_existing_index(
@@ -310,16 +307,23 @@ class Agent():
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category)
-        complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose)
-        # template = """ Update the JSON to provide alternative secondary nodes if existing ones contain following options: {base_value}.
-        # {synopsis}"""
+        output = """ Decompose decision point '{initial_breakdown} ' """ + output
+        prompt_templateo = PromptTemplate(input_variables=["initial_breakdown"], template=output)
+
+        # complete_query = PromptTemplate.from_template(output)
+        chain = LLMChain(llm=self.llm35_fast, prompt=prompt_templateo, verbose=self.verbose)
+        fix_json_template = """ Take input {base_valueo} Provide response in JSON format with proper syntax in maximum three lines with no whitespaces. Follow this structure : {{json_example}} Do not write anything else"""
+        template_json = Template(fix_json_template)
+        output_json = template_json.render( json_example=json_example)
+        prompt_template = PromptTemplate(input_variables=["base_valueo"], template=output_json)
+        chain_json = LLMChain(llm=self.llm_fast, prompt=prompt_template, verbose=self.verbose)
         # prompt_template = PromptTemplate(input_variables=["synopsis", "base_value"], template=template)
         # correction_chain = LLMChain(llm=self.llm35_fast, prompt=prompt_template, verbose=self.verbose)
-        # overall_chain = SimpleSequentialChain(chains=[chain, correction_chain], verbose=True)
-        chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
+        overall_chain = SimpleSequentialChain(chains=[chain, chain_json], verbose=True)
+        chain_result = await overall_chain.arun(str(base_category) )
+        # chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         # resp = await llm.agenerate(["Hello, how are you?"])
-        print(chain_result)
+        print("here it is",chain_result)
         json_o = json.loads(chain_result)
         value_list = [{"category": value} for value in base_value.split(',')]
         # json_o["options"].append({"category": "Your preferences", "options": value_list})
@@ -331,9 +335,10 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """  Decompose decision point '{{ base_category }}' statement into relatable base decision points that have to do with {{ assistant_category }}.
-         For each of the  decisions points  provide a mind map representation of the three secondary nodes that can be used to narrow down the choice better.
-         The answer should be one line follow this property structure : {{json_example}}"""
+        prompt_template_base =""" into three relevant decision categories each  that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, don't provide unrelevant values, For each of the options  provide a mind map representation of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate output with no whitespaces, very short text"""
+        # prompt_template_base = """  Decompose decision point '{{ base_category }}' statement into relatable base decision points that have to do with {{ assistant_category }}.
+        #  For each of the  decisions points  provide a mind map representation of the three secondary nodes  related to {{ assistant_category }} that can be used to narrow down the choice better.
+        #  The answer should be one line follow this property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
         # If there is no ';', split on '=' instead
@@ -726,12 +731,12 @@ if __name__ == "__main__":
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn, gluten", "slow"))
-    # loop.close()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn, gluten", "slow"))
+    loop.close()
     # agent.prompt_to_choose_meal_tree(prompt="I would like a quick veggie meal under 25 near me. No peanuts I am allergic", model_speed="slow")
 
     #print(result)
     # agent._test()
     # agent._retrieve_summary()
-    agent.voice_text_input_imp("Core prompt ", model_speed="slow")
+    #agent.voice_text_input_imp("Core prompt ", model_speed="slow")
