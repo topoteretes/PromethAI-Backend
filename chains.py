@@ -248,7 +248,7 @@ class Agent():
     def prompt_correction(self, prompt_source:str, model_speed:str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically correct sentence: {{prompt_source}}
+        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence.
         """
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
