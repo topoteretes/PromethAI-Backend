@@ -96,24 +96,24 @@ class Agent():
         #     langchain.llm_cache = RedisCache(redis_=Redis(host='localhost', port=6379, db=0))
 
 
-#
-#     def set_user_session(self, user_id: str, session_id: str) -> None:
-#         self.user_id = user_id
-#         self.session_id = session_id
-#
-#     def get_ada_embedding(self, text):
-#         text = text.replace("\n", " ")
-#         return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
-#             "data"
-#         ][0]["embedding"]
-#
-#     def init_pinecone(self, index_name):
-#             load_dotenv()
-#             PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-#             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
-#             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
-#             return pinecone.Index(index_name)
-#
+
+    def set_user_session(self, user_id: str, session_id: str) -> None:
+        self.user_id = user_id
+        self.session_id = session_id
+
+    def get_ada_embedding(self, text):
+        text = text.replace("\n", " ")
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
+            "data"
+        ][0]["embedding"]
+
+    def init_pinecone(self, index_name):
+            load_dotenv()
+            PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+            PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
+            pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
+            return pinecone.Index(index_name)
+
     def _simple_test(self):
         # langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
         with get_openai_callback() as cb:
