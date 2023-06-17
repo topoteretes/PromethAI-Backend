@@ -86,7 +86,7 @@ class Agent():
         # ... (other code here)
         #
         self.openai_temperature = 0.0
-        # self.index = "my-agent"
+        self.index = "my-agent"
 
 
         # try:
@@ -95,25 +95,26 @@ class Agent():
         # except:
         #     langchain.llm_cache = RedisCache(redis_=Redis(host='localhost', port=6379, db=0))
 
+    def clear_cache(self):
+        langchain.llm_cache.clear()
 
-#
-#     def set_user_session(self, user_id: str, session_id: str) -> None:
-#         self.user_id = user_id
-#         self.session_id = session_id
-#
-#     def get_ada_embedding(self, text):
-#         text = text.replace("\n", " ")
-#         return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
-#             "data"
-#         ][0]["embedding"]
-#
-#     def init_pinecone(self, index_name):
-#             load_dotenv()
-#             PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-#             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
-#             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
-#             return pinecone.Index(index_name)
-#
+    def set_user_session(self, user_id: str, session_id: str) -> None:
+        self.user_id = user_id
+        self.session_id = session_id
+
+    def get_ada_embedding(self, text):
+        text = text.replace("\n", " ")
+        return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
+            "data"
+        ][0]["embedding"]
+
+    def init_pinecone(self, index_name):
+            load_dotenv()
+            PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+            PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
+            pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
+            return pinecone.Index(index_name)
+
     def _simple_test(self):
         # langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
         with get_openai_callback() as cb:
@@ -333,7 +334,7 @@ class Agent():
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category)
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         print("here it is",chain_result)
         json_o = json.loads(chain_result)
@@ -421,7 +422,6 @@ class Agent():
                 agent_summary = "None."
         except:
             pass
-
         agent_summary = agent_summary.split('.', 1)[0]
         template = Template(prompt_template)
 
@@ -437,12 +437,14 @@ class Agent():
         else:
             chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-            print("HERE IS THE CHAIN RESULT", chain_result)
+            # end = time.time()
+            #
+            # # logging.info("HERE IS THE CHAIN RESULT %s", chain_result)
+
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
                 embedding=OpenAIEmbeddings(),
                 namespace='GOAL',
-
             )
             from datetime import datetime
             retriever = vectorstore.as_retriever()
