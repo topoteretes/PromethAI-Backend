@@ -38,16 +38,28 @@ class ImageResponse(BaseModel):
 async def root():
     return {"message": "Hello, World, I am alive!"}
 
+# def splitter(t):
+#     list = t.split("=")
+#     key = list[0].strip()
+#     value = list[1].strip()
+#     return { "category": key,
+#              "options": [{
+#                  "category": value,
+#                  "options": []
+#              }],
+#             "preference": [value]
+#     }
+
 def splitter(t):
-    list = t.split("=")
-    key = list[0].strip()
-    value = list[1].strip()
+    lst = t.split("=")
+    key = lst[0].strip()
+    value = lst[1].strip()
     return { "category": key,
              "options": [{
                  "category": value,
                  "options": []
              }],
-            "preference": [value] 
+             "preference": [value]
     }
 
 @app.post("/prompt-to-choose-meal-tree", response_model=dict)
@@ -68,7 +80,11 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     loop = asyncio.get_event_loop()
-    output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+    try:
+        output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+    except:
+        agent.clear_cache()
+        output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
     return JSONResponse(content={"response":output})
 
 
