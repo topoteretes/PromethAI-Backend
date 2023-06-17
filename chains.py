@@ -36,15 +36,19 @@ from langchain.utilities.zapier import ZapierNLAWrapper
 # redis imports for cache
 from langchain.cache import RedisSemanticCache
 import langchain
+from langchain.callbacks import get_openai_callback
 import redis
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 from langchain.llms import Replicate
-
+from redis import Redis
+from langchain.cache import RedisCache
 import os
-
-
+from langchain import llm_cache
+REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+logging.info("Using redis cache")
 
 
 class Agent():
@@ -60,53 +64,68 @@ class Agent():
     REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
 
     def __init__(self, table_name=None, user_id: Optional[str] = "676", session_id: Optional[str] = None) -> None:
+        # self.langchain = langchain  # initialize the Langchain object, modify this as per your requirement
+        # self.langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
+        # langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
         self.table_name = table_name
         self.user_id = user_id
         self.session_id = session_id
-        self.memory = None
+        # self.memory = None
         self.thought_id_timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
         self.openai_model35 = "text-davinci-003"
         self.openai_model4 = "gpt-4"
+        self.llm = OpenAI(temperature=0.0,max_tokens = 600, openai_api_key = self.OPENAI_API_KEY, model_name="text-davinci-003")
         self.llm35_fast = OpenAI(temperature=0.0,max_tokens = 1050, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
         self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 800, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
-        self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
+        # self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1", api_token=self.REPLICATE_API_TOKEN)
         self.verbose: bool = True
 
+        # ... (other code here)
+        #
         self.openai_temperature = 0.0
-        self.index = "my-agent"
-
-        from langchain.cache import RedisCache
-        from redis import Redis
-        if os.getenv('DOCKER_CONTAINER'):
-            langchain.llm_cache = RedisCache(redis_=Redis(host=self.REDIS_HOST, port=6379, db=0))
-            langchain.llm_cache.clear()
-        else:
-            langchain.llm_cache = RedisCache(redis_=Redis(host='localhost', port=6379, db=0))
+        # self.index = "my-agent"
 
 
+        # try:
 
-    def set_user_session(self, user_id: str, session_id: str) -> None:
-        self.user_id = user_id
-        self.session_id = session_id
-
-    def get_ada_embedding(self, text):
-        text = text.replace("\n", " ")
-        return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
-            "data"
-        ][0]["embedding"]
-
-    def init_pinecone(self, index_name):
-            load_dotenv()
-            PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-            PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
-            pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
-            return pinecone.Index(index_name)
+            # langchain.llm_cache.clear()
+        # except:
+        #     langchain.llm_cache = RedisCache(redis_=Redis(host='localhost', port=6379, db=0))
 
 
+#
+#     def set_user_session(self, user_id: str, session_id: str) -> None:
+#         self.user_id = user_id
+#         self.session_id = session_id
+#
+#     def get_ada_embedding(self, text):
+#         text = text.replace("\n", " ")
+#         return openai.Embedding.create(input=[text], model="text-embedding-ada-002",api_key =OPENAI_API_KEY)[
+#             "data"
+#         ][0]["embedding"]
+#
+#     def init_pinecone(self, index_name):
+#             load_dotenv()
+#             PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+#             PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
+#             pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
+#             return pinecone.Index(index_name)
+#
+    def _simple_test(self):
+        # langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
+        with get_openai_callback() as cb:
+            # langchain.llm_cache = RedisCache(redis_=Redis(host='0.0.0.0', port=6379, db=0))
+            prompt = """ How long does it take to go to the moon on foot """
+            prompt = PromptTemplate.from_template(prompt)
+            chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
+            chain_result = chain.run(prompt=prompt,  name=self.user_id).strip()
+            print(cb)
 
+            return chain_result
+#
     # create the length function
     def tiktoken_len(self, text):
         tokenizer = tiktoken.get_encoding('cl100k_base')
@@ -314,7 +333,7 @@ class Agent():
         template = Template(prompt_template_base)
         output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category)
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         print("here it is",chain_result)
         json_o = json.loads(chain_result)
@@ -328,7 +347,7 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three relevant decision categories each that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide irrelevant values. 
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three relevant decision categories each that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide irrelevant values.
         For each of the options provide a mind map representation of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         # prompt_template_base = """  Decompose decision point '{{ base_category }}' statement into relatable base decision points that have to do with {{ assistant_category }}.
         #  For each of the  decisions points  provide a mind map representation of the three secondary nodes  related to {{ assistant_category }} that can be used to narrow down the choice better.
@@ -608,7 +627,7 @@ class Agent():
 
         prompt = """
               Based on the following prompt {{prompt}}
-                Determine the type of food you would want to recommend to the user, that is commonly ordered online. It should of type of food offered on a delivery app similar to burger or pizza, but it doesn't have to be that. 
+                Determine the type of food you would want to recommend to the user, that is commonly ordered online. It should of type of food offered on a delivery app similar to burger or pizza, but it doesn't have to be that.
                 The response should be very short
             """
 
@@ -668,8 +687,8 @@ class Agent():
 
         agent = initialize_agent(llm=llm, tools=[goal_update_wrapper, preferences_wrapper], agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
 
-        prompt = """ 
-        
+        prompt = """
+
             Based on all the history and information of this user, classify the following query: {query} into one of the following categories:
             1. Goal update , 2. Preference change,  3. Result change 4. Subgoal update  If the query is not any of these, then classify it as 'Other'
             Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
@@ -718,6 +737,7 @@ class Agent():
 
 if __name__ == "__main__":
     agent = Agent()
+    # agent._simple_test()
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
