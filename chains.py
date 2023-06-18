@@ -351,8 +351,8 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
-        Provide decision tree of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree of three categories where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
+        Provide decision tree of three secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
         # If there is no ';', split on '=' instead
