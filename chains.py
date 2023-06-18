@@ -274,8 +274,7 @@ class Agent():
     def prompt_correction(self, prompt_source:str, model_speed:str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence.
-        """
+        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations"""
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
@@ -325,18 +324,22 @@ class Agent():
             return json.loads(json_data)  # if successful, return Python dict
         except json.JSONDecodeError:
             return None  # if unsuccessful, return None
-    async def async_generate(self, prompt_template_base, base_category, base_value):
+    async def async_generate(self, prompt_template_base, base_category, base_value, list_of_items):
         """Generates an individual solution choice """
         json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
+        #json_example= """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"}..."""
         assistant_category = "food"
+
+        list_of_items = [item for item in list_of_items if item != [base_category, base_value]]
+        logging.info("list of items", list_of_items)
+        list_as_string = str(list_of_items).strip('[]')
         # agent_summary = agent_summary.split('.', 1)[0]
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
-        output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category)
+        output = template.render(base_category=base_category, base_value=base_value, json_example=json_example, assistant_category=assistant_category, exclusion_categories=list_as_string)
         complete_query = PromptTemplate.from_template(output)
         chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
-        print("here it is",chain_result)
         json_o = json.loads(chain_result)
         value_list = [{"category": value} for value in base_value.split(',')]
         # json_o["options"].append({"category": "Your preferences", "options": value_list})
@@ -348,11 +351,8 @@ class Agent():
     async def generate_concurrently(self, base_prompt):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three relevant decision categories each that help when AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide irrelevant values.
-        For each of the options provide a mind map representation of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
-        # prompt_template_base = """  Decompose decision point '{{ base_category }}' statement into relatable base decision points that have to do with {{ assistant_category }}.
-        #  For each of the  decisions points  provide a mind map representation of the three secondary nodes  related to {{ assistant_category }} that can be used to narrow down the choice better.
-        #  The answer should be one line follow this property structure : {{json_example}}"""
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
+        Provide decision tree of four secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
         # If there is no ';', split on '=' instead
@@ -360,8 +360,17 @@ class Agent():
             list_of_items = [list_of_items[0].split('=')]
         else:
             list_of_items = [item.split("=") for item in list_of_items]
-        tasks = [self.async_generate( prompt_template_base, base_category, base_value) for base_category, base_value in list_of_items]
+        tasks = [self.async_generate( prompt_template_base, base_category, base_value, list_of_items) for base_category, base_value in list_of_items]
         results = await asyncio.gather(*tasks)
+        # results_list = str([json.loads(result) for result in results])
+        # results = results_list.replace("{", "{{").replace("}", "}}")
+        # correction = "Correct logically and write the following json representing the decision tree: {{json_example}}. Do not write anything else."
+        # template = Template(correction)
+        # output = template.render(json_example=results)
+        # complete_query = PromptTemplate.from_template(output)
+        # chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
+        # chain_result = await chain.arun(prompt=complete_query)
+        # results_list =chain_result
 
         if len(results) == 1:
             results_json = json.loads( results[0] )
@@ -372,50 +381,22 @@ class Agent():
             # Parse each JSON string and add it to a list
             results = [result[result.find('{'):result.rfind('}') + 1] for result in results]
             results_list = [json.loads(result) for result in results]
-
-
             # Put the list of results in a dictionary under the "results" key
             combined_json = {"results": results_list}
             return combined_json
-        # results_json = list(results_json)
 
-        # print("here", results_json[0])
-
-        # # Now you can concatenate these results into a single JSON
-        # combined_json = {"results": results_json}
-        # return combined_json
-
-        # tasks = [self.async_generate(prompt_template_base, base_category, base_value) for base_category, base_value in
-        #          list_of_items]
-        #
-        # for task in asyncio.as_completed(tasks):
-        #     result = await task
-        #     json_result = self.extract_json(result)
-        #     if json_result is not None:
-        #         yield json_result
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str, assistant_category:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        json_example = '<category1>=<decision1><decision2>;<category2>=<decision2>...'
+        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """Known user summary: '{{ user_summary }} '.
-        Decompose {{ prompt_str }} statement into decision points that include user summary information and related to {{ assistant_category }}.
-        Find categories for the decisions points. Do not include personality or update time to categories.
+        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        Do not include personality, user summary, personal preferences, or update time to categories. 
         Present answer in one line and in property structure : {{json_example}}"""
-        # prompt_template = """Summarize the user as '{{user_summary}}'.Breakdown '{{prompt_str}}' into decision points relevant to '{{assistant_category}}', excluding
-        # personality and update time. Include info from user summary. Present findings in a single line
-        # with this format: '{{json_example}}'."""
-#         json_str = json_str.replace("{", "{{").replace("}", "}}")
-#         prompt_template=""" Decompose {{ prompt_str }} statement into four decision points that are
-#         relevant to statement above, personal to the user if possible and that he should apply to optimize his decision choices related to food.
-#          Also, help me decompose the decision points into five categories each, starting with the default option provided in the statement exactly as it is.
-#          For each of the four options  provide a mind map representation of the four secondary nodes that can be used to narrow down the choice better. Don't leave options blank.
-#          Please provide the response in JSON format with proper syntax, ensuring that all strings are enclosed in double quotes,in maximum three lines with no whitespaces. The structure should follow this structure : {{json_str}}
-#         """
 
         self.init_pinecone(index_name=self.index)
         try:
             agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
             print("HERE IS THE AGENT SUMMARY", agent_summary)
-
             agent_summary=str(agent_summary)
 
             if str(agent_summary) == "{'error': 'No document found for this user. Make sure that a query is appropriate'}":
@@ -435,11 +416,8 @@ class Agent():
             json_data = json.dumps(output)
             return json_data
         else:
-            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-            # end = time.time()
-            #
-            # # logging.info("HERE IS THE CHAIN RESULT %s", chain_result)
 
             vectorstore: Pinecone = Pinecone.from_existing_index(
                 index_name=self.index,
@@ -449,9 +427,11 @@ class Agent():
             from datetime import datetime
             retriever = vectorstore.as_retriever()
             logging.info(str(chain_result))
+            print("HERE IS THE CHAIN RESULT", chain_result)
             retriever.add_documents([Document(page_content=chain_result,
                                             metadata={'inserted_at': datetime.now(), "text": chain_result,
                                                         'user_id': self.user_id}, namespace="GOAL")])
+
             return chain_result.replace("'", '"')
 
 
@@ -682,7 +662,7 @@ class Agent():
             # namespace: str = Field(description="namespace of the VectorDB")
 
         @tool("preferences_wrapper", args_schema=UpdatePreferences, return_direct=True)
-        def preferences_wrapper(observation,  args_schema=FetchMemories):
+        def preferences_wrapper(observation,  args_schema=UpdatePreferences):
             """Updates user preferences in the VectorDB."""
             return self._update_memories(observation, "PREFERENCES")
 
@@ -739,7 +719,7 @@ class Agent():
 
 if __name__ == "__main__":
     agent = Agent()
-    # agent._simple_test()
+    #agent.prompt_correction(prompt_source="I would like a quicko veggiea meals under 25 near me and", model_speed="slow")
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
@@ -748,9 +728,9 @@ if __name__ == "__main__":
     #agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn, gluten", "slow"))
+    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow"))
     loop.close()
-    # agent.prompt_to_choose_meal_tree(prompt="I would like a quick veggie meal under 25 near me. No peanuts I am allergic", model_speed="slow")
+    #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     #print(result)
     # agent._test()
