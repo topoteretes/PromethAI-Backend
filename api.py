@@ -61,6 +61,15 @@ def splitter(t):
     else:
         return None
 
+
+@app.post("/clear-cache", response_model=dict)
+async def clear_cache(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    agent.clear_cache()
+    return JSONResponse(content={"response":"Cache cleared"})
+
 @app.post("/prompt-to-choose-meal-tree", response_model=dict)
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -78,11 +87,8 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    try:
-        output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
-    except:
-        agent.clear_cache()
-        output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+    output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+
     return JSONResponse(content={"response":output})
 
 
@@ -92,11 +98,8 @@ async def prompt_to_correct_grammar(request_data: Payload)-> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     logging.info("Correcting grammar %s", json_payload["prompt_source"])
-    try:
-        output = agent.prompt_correction(json_payload["prompt_source"], model_speed=json_payload["model_speed"])
-    except:
-        agent.clear_cache()
-        output = agent.prompt_correction(json_payload["prompt_source"], model_speed= json_payload["model_speed"])
+
+    output = agent.prompt_correction(json_payload["prompt_source"], model_speed=json_payload["model_speed"])
     return JSONResponse(content={"response":output})
 
 @app.post("/prompt-to-update-meal-tree", response_model=dict)

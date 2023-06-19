@@ -73,10 +73,10 @@ class Agent():
         # self.memory = None
         self.thought_id_timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3]   #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "text-davinci-003"
+        self.openai_model35 = "gpt-3.5-turbo"
         self.openai_model4 = "gpt-4"
         self.llm = OpenAI(temperature=0.0,max_tokens = 600, openai_api_key = self.OPENAI_API_KEY, model_name="text-davinci-003")
-        self.llm35_fast = OpenAI(temperature=0.0,max_tokens = 1050, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
+        self.llm35_fast = ChatOpenAI(temperature=0.0,max_tokens = 1050, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
         self.llm_fast = ChatOpenAI(temperature=0.0,max_tokens = 800, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.llm35 = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name=self.openai_model35)
         # self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
@@ -327,7 +327,6 @@ class Agent():
     async def async_generate(self, prompt_template_base, base_category, base_value, list_of_items):
         """Generates an individual solution choice """
         json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
-        #json_example= """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"}..."""
         assistant_category = "food"
 
         list_of_items = [item for item in list_of_items if item != [base_category, base_value]]
@@ -354,7 +353,9 @@ class Agent():
         prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree of three categories where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
         Provide decision tree of three secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
-
+        # Remove every second value
+        list_of_items = [item for i, item in enumerate(list_of_items) if i % 2 == 0]
+        list_of_items.sort()
         # If there is no ';', split on '=' instead
         if len(list_of_items) == 1:
             list_of_items = [list_of_items[0].split('=')]
@@ -381,10 +382,21 @@ class Agent():
             # Parse each JSON string and add it to a list
             results = [result[result.find('{'):result.rfind('}') + 1] for result in results]
             results_list = [json.loads(result) for result in results]
+            def replace_underscores(data):
+                if isinstance(data, dict):
+                    for key, value in data.items():
+                        if key == 'category' and isinstance(value, str):
+                            data[key] = value.replace('_', ' ')
+                        else:
+                            replace_underscores(value)
+                elif isinstance(data, list):
+                    for item in data:
+                        replace_underscores(item)
+
+            replace_underscores(results_list)
             # Put the list of results in a dictionary under the "results" key
             combined_json = {"results": results_list}
             return combined_json
-
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed:str, assistant_category:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
@@ -489,81 +501,6 @@ class Agent():
         review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
         review_chain_result = review_chain.run(prompt=complete_query, name=self.user_id).strip()
         return review_chain_result.replace("'", '"')
-
-
-
-     # def goal_generation(self, factors: dict, model_speed:str):
-     #
-     #     """Serves to optimize agent goals"""
-     #
-     #     prompt = """
-     #          Based on all the history and information of this user, suggest mind map that would have four decision points that are personal to him that he should apply to optimize his decision choices related to food. It must be food and nutrition related.
-     #          The cuisine should be one of the points, and goal should contain one or maximum three words. If user preferences don't override it, and if it includes time elemeent, it should be called "Time to make", if it descibes complexity of the dish, it should be  "Complexity", and if descibing food content it should be called "Macros"
-     #          Answer a condensed JSON with no whitespaces. The structure should only contain a list of goals under field "goals". After the JSON output, don't explain or write anything.
-     #        """
-     #
-     #     self.init_pinecone(index_name=self.index)
-     #     agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
-     #     template = Template(prompt)
-     #     output = template.render(factors=factors)
-     #     complete_query = str(agent_summary) + output
-     #     complete_query = PromptTemplate.from_template(complete_query)
-     #     if model_speed =='fast':
-     #        output = self.replicate_llm(output)
-     #        return output
-     #     else:
-     #        chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
-     #        chain_result = chain.run(prompt=complete_query).strip()
-     #        vectorstore: Pinecone = Pinecone.from_existing_index(
-     #            index_name=self.index,
-     #            embedding=OpenAIEmbeddings(),
-     #            namespace='GOAL'
-     #        )
-     #        from datetime import datetime
-     #        retriever = vectorstore.as_retriever()
-     #        retriever.add_documents([Document(page_content=chain_result,
-     #                                          metadata={'inserted_at': datetime.now(), "text": chain_result,
-     #                                                    'user_id': self.user_id}, namespace="GOAL")])
-     #        return chain_result
-
-    # def sub_goal_generation(self, factors: dict, model_speed:str):
-    #     """Serves to generate sub goals for the user and drill down into it"""
-    #
-    #     prompt = """
-    #         Base
-    #         d on all the history and information of this user, GOALS PROVIDED HERE  {% for factor in factors %} '{{ factor['name'] }}'{% if not loop.last %}, {% endif %}{% endfor %}
-    #          provide a mind map representation of the secondary nodes that can be used to narrow down the choice better.It needs to be food and nutrition related. Each of the results should have 4 sub nodes.
-    #         Answer a condensed JSON with no whitespaces. The strucuture should only contain the list of subgoal items under field "sub_goals".
-    #         Every subgoal should have a "goal_name" refers to the goal and the list of subgoals with "name" and a "amount" should be shown as a range from 0 to 100, with a value chosen explicilty and shown based on the personal preferences of the user.
-    #         After the JSON output, don't explain or write anything
-    #         """
-    #
-    #     self.init_pinecone(index_name=self.index)
-    #     agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
-    #     template = Template(prompt)
-    #     output = template.render(factors=factors)
-    #     print("HERE IS THE AGENT SUMMARY", agent_summary)
-    #     print("HERE IS THE TEMPLATE", output)
-    #     complete_query = str(agent_summary) + output
-    #     complete_query = PromptTemplate.from_template(complete_query)
-    #     if model_speed =='fast':
-    #         output = self.replicate_llm(output)
-    #         return output
-    #     else:
-    #         chain = LLMChain(llm=self.llm,  prompt=complete_query, verbose=self.verbose)
-    #         chain_result = chain.run( prompt=complete_query).strip()
-    #         vectorstore: Pinecone = Pinecone.from_existing_index(
-    #             index_name=self.index,
-    #             embedding=OpenAIEmbeddings(),
-    #             namespace='SUBGOAL'
-    #         )
-    #         from datetime import datetime
-    #         retriever = vectorstore.as_retriever()
-    #         retriever.add_documents([Document(page_content=chain_result,
-    #                                           metadata={'inserted_at': datetime.now(), "text": chain_result,
-    #                                                     'user_id': self.user_id}, namespace="SUBGOAL")])
-    #         print("RESULT IS ", chain_result)
-    #         return chain_result
 
     def extract_info(self, s:str):
         lines = s.split('\n')
@@ -726,11 +663,11 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
-    #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow"))
-    loop.close()
-    #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
+    agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow"))
+    # loop.close()
+    # #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     #print(result)
     # agent._test()
