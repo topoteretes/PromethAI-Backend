@@ -98,9 +98,8 @@ async def prompt_to_correct_grammar(request_data: Payload)-> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     logging.info("Correcting grammar %s", json_payload["prompt_source"])
-
-    output = agent.prompt_correction(json_payload["prompt_source"], model_speed=json_payload["model_speed"])
-    return JSONResponse(content={"response":output})
+    output = agent.prompt_correction(json_payload["prompt_source"], model_speed= json_payload["model_speed"])
+    return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 @app.post("/prompt-to-update-meal-tree", response_model=dict)
 async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
