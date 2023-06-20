@@ -366,9 +366,9 @@ class Agent():
             list_of_items = [list_of_items[0].split('=')]
         else:
             list_of_items = [item.split("=") for item in list_of_items]
-            # Remove every second value
-            list_of_items = [item for i, item in enumerate(list_of_items) if i % 2 == 0]
-            list_of_items.sort()
+            # Remove  value
+            print("LIST OF ITEMS", list_of_items)
+            logging.info("LIST OF ITEMS", str(list_of_items))
         tasks = [self.async_generate( prompt_template_base, base_category, base_value, list_of_items, assistant_category) for base_category, base_value in list_of_items]
         results = await asyncio.gather(*tasks)
         # results_list = str([json.loads(result) for result in results])
@@ -672,10 +672,10 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.update_agent_taboos("Dislike is brocolli")
     #agent.update_agent_summary(model_speed="slow")
-    agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow"))
-    # loop.close()
+    #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow", model_speed="slow"))
+    loop.close()
     # #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     #print(result)
