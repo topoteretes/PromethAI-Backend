@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from chains import Agent
-from .api import app
+from api import app
 
 client = TestClient(app)
 
@@ -16,58 +16,68 @@ class TestRoutes:
         assert response.status_code == 200
         assert response.json() == {"message": "Hello, World, I am alive!"}
 
-    def test_health_check(self):
-        response = client.get("/health")
-        assert response.status_code == 200
-        assert response.json() == {"status": "OK"}
+    class TestRoutes:
 
-    def test_generate_diet_sub_goal(self):
-        payload = {
-            "payload": {
-                "user_id": "657",
-                "session_id": "456",
-                "model_speed": "slow",
-                "factors": [
-                    {"name": "Portion Control"},
-                    {"name": "Cuisine"},
-                    {"name": "Macronutrients"}
-                ]
+        def test_root(self):
+            response = client.get("/")
+            assert response.status_code == 200
+            assert response.json() == {"message": "Hello, World, I am alive!"}
+
+        def test_health_check(self):
+            response = client.get("/health")
+            assert response.status_code == 200
+            assert response.json() == {"status": "OK"}
+
+        def test_prompt_to_choose_meal_tree(self):
+            payload = {
+                "payload": {
+                    "user_id": "657",
+                    "session_id": "456",
+                    "model_speed": "slow",
+                    "prompt": "I want to eat healthy"
+                }
             }
-        }
-        response = client.post("/generate-diet-sub-goal", json=payload)
-        assert response.status_code == 200
-        response_body = response.json()
+            response = client.post("/prompt-to-choose-meal-tree", json=payload)
+            assert response.status_code == 200
+            response_body = response.json()
 
-        # Check that the response structure is correct
-        assert 'response' in response_body
-        assert 'sub_goals' in response_body['response']
+            # Check that the response structure is correct
+            assert 'response' in response_body
+            assert 'results' in response_body['response']
 
-        # Check that all expected goals are present
-        for goal in payload['payload']['factors']:
-            found_goal = any(sub_goal['goal_name'] == goal['name'] for sub_goal in response_body['response']['sub_goals'])
-            assert found_goal, f"Goal '{goal['name']}' not found in response"
-
-    def test_generate_diet_goal(self):
+    def test_prompt_to_decompose_meal_tree_categories(self):
         payload = {
             "payload": {
-                "model_speed": "slow",
                 "user_id": "659",
-                "session_id": "458"
+                "session_id": "458",
+                "model_speed": "slow",
+                "prompt_struct": "taste=Helsinki;health=Helsinki;cost=Helsinki"
             }
         }
-        response = client.post("/generate-diet-goal", json=payload)
+        response = client.post("/prompt-to-decompose-meal-tree-categories", json=payload)
         assert response.status_code == 200
         response_body = response.json()
 
         # Check that the response structure is correct
         assert 'response' in response_body
-        assert 'goals' in response_body['response']
+        assert 'category' in response_body['response']
+        assert 'options' in response_body['response']
 
-        # Example goals to check for in response
-        example_goals = ["Cuisine", "Time to make", "Complexity", "Macros"]
-        # Check that all example goals are present
-        for goal in example_goals:
-            assert goal in response_body['response']['goals'], f"Goal '{goal}' not found in response"
+        # Check that the main category is 'location'
+        assert response_body['response']['category'] == 'location'
+
+        # Check that the options are correct
+        options = response_body['response']['options']
+        assert len(options) == 3  # There should be 3 options
+
+        # Check that each option has a 'category' and 'options'
+        for option in options:
+            assert 'category' in option
+            assert 'options' in option
+
+            # Check that each sub-option has a 'category'
+            for sub_option in option['options']:
+                assert 'category' in sub_option
 
 if __name__ == "__main__":
     pytest.main()

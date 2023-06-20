@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any
-import asyncio
 import json
 import logging
 import os
@@ -87,7 +86,7 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload)-> dict
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], model_speed= json_payload["model_speed"])
+    output = await agent.prompt_decompose_to_meal_tree_categories(json_payload["prompt_struct"], assistant_category= "food",  model_speed =json_payload["model_speed"])
 
     return JSONResponse(content={"response":output})
 

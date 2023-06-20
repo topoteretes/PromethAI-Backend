@@ -46,9 +46,14 @@ from redis import Redis
 from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
-REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
-langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-logging.info("Using redis cache")
+if os.getenv("LOCAL_DEV", "") != "True":
+    REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+    logging.info("Using redis cache")
+else:
+    REDIS_HOST = os.getenv("0.0.0.0", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+    logging.info("Using localredis cache")
 
 
 class Agent():
@@ -274,7 +279,7 @@ class Agent():
     def prompt_correction(self, prompt_source:str, model_speed:str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations"""
+        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if possible"""
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
@@ -324,10 +329,10 @@ class Agent():
             return json.loads(json_data)  # if successful, return Python dict
         except json.JSONDecodeError:
             return None  # if unsuccessful, return None
-    async def async_generate(self, prompt_template_base, base_category, base_value, list_of_items):
+    async def async_generate(self, prompt_template_base, base_category, base_value, list_of_items, assistant_category):
         """Generates an individual solution choice """
         json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
-        assistant_category = "food"
+
 
         list_of_items = [item for item in list_of_items if item != [base_category, base_value]]
         logging.info("list of items", list_of_items)
@@ -347,7 +352,7 @@ class Agent():
         return chain_result
 
 
-    async def generate_concurrently(self, base_prompt):
+    async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
         prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree of three categories where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
@@ -361,7 +366,7 @@ class Agent():
             list_of_items = [list_of_items[0].split('=')]
         else:
             list_of_items = [item.split("=") for item in list_of_items]
-        tasks = [self.async_generate( prompt_template_base, base_category, base_value, list_of_items) for base_category, base_value in list_of_items]
+        tasks = [self.async_generate( prompt_template_base, base_category, base_value, list_of_items, assistant_category) for base_category, base_value in list_of_items]
         results = await asyncio.gather(*tasks)
         # results_list = str([json.loads(result) for result in results])
         # results = results_list.replace("{", "{{").replace("}", "}}")
@@ -447,12 +452,13 @@ class Agent():
             return chain_result.replace("'", '"')
 
 
-    async def prompt_decompose_to_meal_tree_categories(self, prompt: str, model_speed:str):
+    async def prompt_decompose_to_meal_tree_categories(self, prompt: str, assistant_category, model_speed:str):
         """Serves to generate agent goals and subgoals based on a prompt"""
         import time
 
+
         start = time.time()
-        combined_json = await self.generate_concurrently(prompt)
+        combined_json = await self.generate_concurrently(prompt, assistant_category)
         end = time.time()
 
         logging.info(f"Execution time: {end - start} seconds")
