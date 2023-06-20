@@ -358,14 +358,17 @@ class Agent():
         prompt_template_base =""" Decompose decision point '{{ base_category }}' into decision tree of three categories where AI is helping person in choosing {{ assistant_category }}.Keep relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
         Provide decision tree of three secondary nodes that can be used to narrow down the {{ assistant_category }} choice better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
-        # Remove every second value
-        list_of_items = [item for i, item in enumerate(list_of_items) if i % 2 == 0]
-        list_of_items.sort()
+
+
+
         # If there is no ';', split on '=' instead
         if len(list_of_items) == 1:
             list_of_items = [list_of_items[0].split('=')]
         else:
             list_of_items = [item.split("=") for item in list_of_items]
+            # Remove every second value
+            list_of_items = [item for i, item in enumerate(list_of_items) if i % 2 == 0]
+            list_of_items.sort()
         tasks = [self.async_generate( prompt_template_base, base_category, base_value, list_of_items, assistant_category) for base_category, base_value in list_of_items]
         results = await asyncio.gather(*tasks)
         # results_list = str([json.loads(result) for result in results])
