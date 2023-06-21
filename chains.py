@@ -336,7 +336,7 @@ class Agent():
 
         list_of_items = [item for item in list_of_items if item != [base_category, base_value]]
         logging.info("list of items", list_of_items)
-        list_as_string = str(list_of_items).strip('[]')
+        list_as_string = str(list_of_items[0]).strip('[]')
         # agent_summary = agent_summary.split('.', 1)[0]
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_template_base)
@@ -355,8 +355,8 @@ class Agent():
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.Keep very relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
-        Provide sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories  that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
 
