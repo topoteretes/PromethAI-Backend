@@ -355,7 +355,7 @@ class Agent():
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.Keep very relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories including {{base_value}} that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.Keep very relevant to {{base_category}}, dont provide values related to {{exclusion_categories}}.
         Provide sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
