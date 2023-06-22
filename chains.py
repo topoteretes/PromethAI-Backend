@@ -355,7 +355,7 @@ class Agent():
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories including {{base_value}} that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        prompt_template_base =""" Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' but without '{{base_value}} ' nor {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
         Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
@@ -674,7 +674,7 @@ if __name__ == "__main__":
     #agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("allergy=corn;diet=vegan", "slow", model_speed="slow"))
+    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     loop.close()
     # #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
