@@ -6,7 +6,6 @@
     <img src="assets/topoteretes_logo.png" width="10%" alt="promethAI logo" />
   </a>
 
-
   
 </p>
 
