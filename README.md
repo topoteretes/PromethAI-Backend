@@ -5,9 +5,7 @@
   <a href="https://prometh.ai//#gh-light-mode-only">
     <img src="assets/topoteretes_logo.png" width="10%" alt="promethAI logo" />
   </a>
-  <a href="https://topoteretes.com//#gh-dark-mode-only">
-    <img src="assets/topoteretes_logo.png" width="10%" alt="topoteretes logo" />
-  </a>
+
 
   
 </p>

@@ -576,17 +576,17 @@ class Agent():
     def add_zapier_calendar_action(self, prompt_base, token, model_speed:str):
         """Serves to add a calendar action to the user's Google Calendar account"""
 
-        try:
-            ZAPIER_NLA_OAUTH_ACCESS_TOKEN = token
-            zapier = ZapierNLAWrapper(zapier_nla_oauth_access_token=ZAPIER_NLA_OAUTH_ACCESS_TOKEN)
-            toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
-            agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-                                     verbose=True)
-        except:
-            zapier = ZapierNLAWrapper()
-            toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
-            agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-                                     verbose=True)
+        # try:
+        ZAPIER_NLA_OAUTH_ACCESS_TOKEN = token
+        zapier = ZapierNLAWrapper(zapier_nla_oauth_access_token=ZAPIER_NLA_OAUTH_ACCESS_TOKEN)
+        toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+        agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+                                 verbose=True)
+        # except:
+        #     zapier = ZapierNLAWrapper()
+        #     toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+        #     agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        #                              verbose=True)
 
         template = """ Formulate the following statement into a calendar request containing time, title, details of the meeting: {prompt} """
         prompt_template = PromptTemplate(
