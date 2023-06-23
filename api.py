@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import uvicorn
-
+from fastapi import Request
 CANNED_RESPONSES=False
 
 # Set up logging
@@ -68,6 +68,20 @@ async def clear_cache(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     agent.clear_cache()
     return JSONResponse(content={"response":"Cache cleared"})
+
+@app.post("/action-add-zapier-calendar-action", response_model=dict)
+async def action_add_zapier_calendar_action(request: Request,request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    # Extract the bearer token from the header
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        bearer_token = auth_header.replace("Bearer ", "")
+    else:
+        bearer_token = None
+    outcome = agent.add_zapier_calendar_action(prompt_base=json_payload["prompt_base"], token=bearer_token, model_speed=json_payload["model_speed"])
+    return JSONResponse(content={"response":outcome})
 
 @app.post("/prompt-to-choose-meal-tree", response_model=dict)
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:

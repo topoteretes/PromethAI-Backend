@@ -103,6 +103,11 @@
   <a href="https://prometh.ai">Visit and sign up for the closed Beta at prometh.ai</a>
 </p>
 
+## 🛣 Architecture
+<p align="center">
+  <img src="assets/PromethAI_infra.png" alt="PromethAI Architecture" width="50%" height="50%">
+</p>
+
 
 ## 🛣 Roadmap
 <p align="center">

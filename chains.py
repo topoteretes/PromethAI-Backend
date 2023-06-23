@@ -46,14 +46,14 @@ from redis import Redis
 from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
-if os.getenv("LOCAL_DEV", "") != "True":
-    REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
-    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-    logging.info("Using redis cache")
-else:
-    REDIS_HOST = os.getenv("0.0.0.0", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
-    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-    logging.info("Using localredis cache")
+# if os.getenv("LOCAL_DEV", "") != "True":
+#     REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+#     logging.info("Using redis cache")
+# else:
+#     REDIS_HOST = os.getenv("0.0.0.0", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+#     logging.info("Using localredis cache")
 
 
 class Agent():
@@ -573,15 +573,31 @@ class Agent():
 
 
 
-    def add_zapier_calendar_action(self, context=None):
+    def add_zapier_calendar_action(self, prompt_base, token, model_speed:str):
+        """Serves to add a calendar action to the user's Google Calendar account"""
 
+        try:
+            ZAPIER_NLA_OAUTH_ACCESS_TOKEN = token
+            zapier = ZapierNLAWrapper(zapier_nla_oauth_access_token=ZAPIER_NLA_OAUTH_ACCESS_TOKEN)
+            toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+            agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+                                     verbose=True)
+        except:
+            zapier = ZapierNLAWrapper()
+            toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
+            agent = initialize_agent(toolkit.get_tools(), self.llm_fast, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+                                     verbose=True)
 
-        zapier = ZapierNLAWrapper()
-        toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
-        agent = initialize_agent(toolkit.get_tools(), self.llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
-        agent.run("Search for and play easy cooking music on Spotify, where rock is search term and Spotify is the app")
-
-        #'https://api.spotify.com/v1/search?q=easy+cooking+music&type=playlist&limit=1'
+        template = """ Formulate the following statement into a calendar request containing time, title, details of the meeting: {prompt} """
+        prompt_template = PromptTemplate(
+            input_variables=["prompt"], template=template
+        )
+        # complete_query = PromptTemplate.from_template(output)
+        chain = LLMChain(llm=self.llm, prompt=prompt_template, verbose=self.verbose)
+        overall_chain = SimpleSequentialChain( chains=[chain, agent],verbose=True)
+        outcome =overall_chain.run(prompt_base)
+        print("HERE IS THE OUTCOME", outcome)
+        return outcome
     def voice_text_input(self, query: str, model_speed: str):
 
         """Serves to generate sub goals for the user and or update the user's preferences"""
@@ -670,12 +686,12 @@ if __name__ == "__main__":
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
     # agent.update_agent_preferences("Alergic to corn")
-    # agent.update_agent_taboos("Dislike is brocolli")
+    agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     #agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
-    loop.close()
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
+    # loop.close()
     # #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     #print(result)
