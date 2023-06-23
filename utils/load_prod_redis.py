@@ -4,7 +4,7 @@ from itertools import combinations
 
 # Define the endpoint URL
 
-endpoint_url = "http://promethai-dev-backend-alb-2012524587.eu-west-1.elb.amazonaws.com:8000/prompt-to-decompose-meal-tree-categories"
+endpoint_url = "http://0.0.0.0:8000/prompt-to-decompose-meal-tree-categories"
 
 # Define the meal choice factors
 meal_choice_factors = ["taste", "health", "cost", "cuisine", "hunger", "availability", "diet", "allergies", "time", "mood","calories"]
