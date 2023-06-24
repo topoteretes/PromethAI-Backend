@@ -46,14 +46,14 @@ from redis import Redis
 from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
-# if os.getenv("LOCAL_DEV", "") != "True":
-#     REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
-#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-#     logging.info("Using redis cache")
-# else:
-#     REDIS_HOST = os.getenv("0.0.0.0", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
-#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-#     logging.info("Using localredis cache")
+if os.getenv("LOCAL_DEV", "") != "True":
+    REDIS_HOST = os.getenv("REDIS_HOST", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+    logging.info("Using redis cache")
+else:
+    REDIS_HOST = os.getenv("0.0.0.0", "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com")
+    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+    logging.info("Using localredis cache")
 
 
 class Agent():
@@ -686,7 +686,7 @@ if __name__ == "__main__":
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
     # agent.update_agent_preferences("Alergic to corn")
-    agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
+    #agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     #agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
@@ -696,5 +696,5 @@ if __name__ == "__main__":
 
     #print(result)
     # agent._test()
-    # agent._retrieve_summary()
+    agent._retrieve_summary()
     #agent.voice_text_input_imp("Core prompt ", model_speed="slow")
