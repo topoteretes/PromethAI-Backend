@@ -1,10 +1,13 @@
 import os
 from dotenv import load_dotenv
 from api import start_api_server
+
 # API_ENABLED = os.environ.get("API_ENABLED", "False").lower() == "true"
 import boto3
 
 environment = os.getenv("ENVIRONMENT", "dev")
+
+
 def fetch_secret(secret_name, region_name, env_file_path):
     session = boto3.session.Session()
     client = session.client(service_name="secretsmanager", region_name=region_name)
@@ -42,8 +45,11 @@ if os.path.exists(env_file):
 
 
 else:
-    secrets = fetch_secret(f"promethai-{environment}-backend-secretso-promethaijs-dotenv", "eu-west-1", ".env")
+    secrets = fetch_secret(
+        f"promethai-{environment}-backend-secretso-promethaijs-dotenv",
+        "eu-west-1",
+        ".env",
+    )
     if secrets:
         print(secrets)
     load_dotenv()
-
