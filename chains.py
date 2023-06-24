@@ -314,7 +314,6 @@ class Agent:
         ).strip()
         return self._update_memories(chain_result, namespace="PREFERENCES")
 
-
     def update_agent_traits(self, traits: str):
         """Serves to update agent traits so that they can be used in summary"""
         prompt = """ The {name} has following {past_traits} and the new {traits}
@@ -762,6 +761,7 @@ class Agent:
             observation: str = Field(
                 description="observation we want to fetch from vectordb"
             )
+
         @tool("preferences_wrapper", args_schema=UpdatePreferences, return_direct=True)
         def preferences_wrapper(observation, args_schema=UpdatePreferences):
             """Updates user preferences in the VectorDB."""
@@ -805,7 +805,6 @@ class Agent:
         self.init_pinecone(index_name=self.index)
         agent_summary = self._fetch_memories(f"Users core summary", namespace="SUMMARY")
         return agent_summary
-
 
     def _retrieve_summary(self):
         """Serves to retrieve agent summary"""
