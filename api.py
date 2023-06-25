@@ -44,6 +44,8 @@ async def root():
 
 
 def splitter(t):
+    """ Split a string into a list of strings, standardize the format of the strings,
+    laods them as json, and returns the json."""
     lst = t.split("=")
     if len(lst) >= 2:
         key = lst[0].strip()
@@ -119,6 +121,18 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
         json_payload["prompt_struct"],
         assistant_category="food",
         model_speed=json_payload["model_speed"],
+    )
+
+    return JSONResponse(content={"response": output})
+
+
+@app.post("/update-agent-summary", response_model=dict)
+async def update_agent_summary(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    output = await agent.update_agent_summary(
+        model_speed=json_payload["model_speed"]
     )
 
     return JSONResponse(content={"response": output})

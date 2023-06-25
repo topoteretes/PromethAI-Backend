@@ -128,9 +128,6 @@ class Agent:
             api_token=self.REPLICATE_API_TOKEN,
         )
         self.verbose: bool = True
-
-        # ... (other code here)
-        #
         self.openai_temperature = 0.0
         self.index = "my-agent"
 
@@ -150,6 +147,7 @@ class Agent:
     def init_pinecone(self, index_name):
         load_dotenv()
         PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
+        PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
         pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_API_ENV)
         return pinecone.Index(index_name)
 
@@ -573,14 +571,7 @@ class Agent:
         self, prompt: str, assistant_category, model_speed: str
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        import time
-
-        start = time.time()
         combined_json = await self.generate_concurrently(prompt, assistant_category)
-        end = time.time()
-
-        logging.info(f"Execution time: {end - start} seconds")
-
         return combined_json
         # async for result in self.generate_concurrently(prompt):
         #     yield result
@@ -831,5 +822,5 @@ if __name__ == "__main__":
 
     # print(result)
     # agent._test()
-    agent._retrieve_summary()
+    agent.update_agent_summary(model_speed="slow")
     # agent.voice_text_input_imp("Core prompt ", model_speed="slow")

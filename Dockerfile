@@ -10,8 +10,6 @@ ENV PATH="${PATH}:/root/.poetry/bin"
 RUN pip install poetry
 
 WORKDIR /app
-#COPY requirements.txt /tmp/requirements.txt
-#RUN pip install -r requirements.txt
 COPY pyproject.toml poetry.lock /app/
 
 # Install the dependencies
@@ -35,9 +33,3 @@ COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-
-
-
-# Start Gunicorn server
-
-#CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "api:app", "--bind", "0.0.0.0:8000"]
