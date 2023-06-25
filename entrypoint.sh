@@ -1,4 +1,5 @@
 #!/bin/bash
+export ENVIRONMENT
 python fetch_secret.py
 
 # Start Gunicorn

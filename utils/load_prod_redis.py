@@ -4,10 +4,22 @@ from itertools import combinations
 
 # Define the endpoint URL
 
-endpoint_url = "http://promethai-dev-backend-alb-2012524587.eu-west-1.elb.amazonaws.com:8000/prompt-to-decompose-meal-tree-categories"
+endpoint_url = "http://0.0.0.0:8000/prompt-to-decompose-meal-tree-categories"
 
 # Define the meal choice factors
-meal_choice_factors = ["taste", "health", "cost", "cuisine", "hunger", "availability", "diet", "allergies", "time", "mood","calories"]
+meal_choice_factors = [
+    "taste",
+    "health",
+    "cost",
+    "cuisine",
+    "hunger",
+    "availability",
+    "diet",
+    "allergies",
+    "time",
+    "mood",
+    "calories",
+]
 
 meal_choice_factors.sort()
 
@@ -20,15 +32,12 @@ payload_template = {
         "user_id": "123",
         "session_id": "471",
         "model_speed": "slow",
-        "prompt_struct": ""
+        "prompt_struct": "",
     }
 }
 
 
-headers = {
-  'Content-Type': 'application/json'
-}
-
+headers = {"Content-Type": "application/json"}
 
 
 # Generate combinations of three factors
@@ -46,7 +55,9 @@ for i, factors in enumerate(factor_combinations, 1):
     payload_json = json.dumps(payload_template)
 
     # Send the request to the endpoint
-    response = requests.request("POST", endpoint_url, headers=headers, data=payload_json)
+    response = requests.request(
+        "POST", endpoint_url, headers=headers, data=payload_json
+    )
 
     # Print the response
     print(response.text)

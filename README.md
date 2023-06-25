@@ -5,9 +5,6 @@
   <a href="https://prometh.ai//#gh-light-mode-only">
     <img src="assets/topoteretes_logo.png" width="10%" alt="promethAI logo" />
   </a>
-  <a href="https://topoteretes.com//#gh-dark-mode-only">
-    <img src="assets/topoteretes_logo.png" width="10%" alt="topoteretes logo" />
-  </a>
 
   
 </p>
@@ -101,6 +98,11 @@
 
 <p align="center">
   <a href="https://prometh.ai">Visit and sign up for the closed Beta at prometh.ai</a>
+</p>
+
+## 🛣 Architecture
+<p align="center">
+  <img src="assets/PromethAI_infra.png" alt="PromethAI Architecture" width="50%" height="50%">
 </p>
 
 

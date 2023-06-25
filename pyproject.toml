@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = {git = "https://github.com/UmerHA/langchain.git", rev = "1644-BaseChatModel-Caching"}
+langchain = {git = "https://github.com/topoteretes/langchain.git" , tag = "v0.0.209"}
 nltk = "3.8.1"
 openai = "0.27.8"
 pinecone-client = "2.2.1"
