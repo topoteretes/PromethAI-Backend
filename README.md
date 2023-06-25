@@ -22,9 +22,9 @@
 <a href="https://github.com/topoteretes/PromethAI-Backend/pulls" target="blank">
 <img src="https://img.shields.io/github/issues-pr/topoteretes/PromethAI-Backend?style=for-the-badge" alt="promethAI pull-requests"/>
 </a>
-<a href='https://github.com/topoteretes/PromethAI-Backend/releases'>
+<!-- <a href='https://github.com/topoteretes/PromethAI-Backend/releases'>
 <img src='https://img.shields.io/github/release/topoteretes/PromethAI-Backend?&label=Latest&style=for-the-badge'>
-</a>
+</a> -->
 
 <a href="https://github.com/topoteretes/PromethAI-Backend/commits" target="blank">
 <img src="https://img.shields.io/github/commits-since/topoteretes/PromethAI-Backend/v0.0.3.svg?style=for-the-badge" alt="promethAI Commits"/>
