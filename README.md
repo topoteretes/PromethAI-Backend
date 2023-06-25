@@ -29,7 +29,6 @@
 <a href="https://github.com/topoteretes/PromethAI-Backend/commits" target="blank">
 <img src="https://img.shields.io/github/commits-since/topoteretes/PromethAI-Backend/v0.0.3.svg?style=for-the-badge" alt="promethAI Commits"/>
 </a>
-
 </p>
 
 [//]: # (<p align="center"><b>Follow PromethAI </b></p>)
