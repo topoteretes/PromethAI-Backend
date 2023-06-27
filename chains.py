@@ -1,11 +1,12 @@
-from langchain.prompts import PromptTemplate
 
+
+from langchain import PromptTemplate
+from langchain.tools import BaseTool, StructuredTool, Tool, tool
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict
 from langchain import LLMMathChain, SerpAPIWrapper
 from langchain.agents import AgentType, initialize_agent
-from langchain.chat_models import ChatOpenAI
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
 from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -14,7 +15,6 @@ from pydantic import BaseModel, Field
 import re
 from jinja2 import Template
 from dotenv import load_dotenv
-from langchain.llms.openai import OpenAI
 from langchain import LLMChain
 from langchain.schema import Document
 from langchain.chains import SimpleSequentialChain
@@ -36,10 +36,8 @@ from langchain.agents import AgentType
 from langchain.utilities.zapier import ZapierNLAWrapper
 
 # redis imports for cache
-from langchain.cache import RedisSemanticCache
 import langchain
 from langchain.callbacks import get_openai_callback
-import redis
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -63,6 +61,7 @@ else:
     )
     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
     logging.info("Using localredis cache")
+
 
 
 class Agent:
@@ -96,8 +95,8 @@ class Agent:
             :-3
         ]  #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "gpt-3.5-turbo"
-        self.openai_model4 = "gpt-4"
+        self.openai_model35 = "gpt-3.5-turbo-0613"
+        self.openai_model4 = "gpt-4-0613"
         self.llm = OpenAI(
             temperature=0.0,
             max_tokens=600,
@@ -114,7 +113,7 @@ class Agent:
             temperature=0.0,
             max_tokens=800,
             openai_api_key=self.OPENAI_API_KEY,
-            model_name="gpt-4",
+            model_name="gpt-4-0613",
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
@@ -258,11 +257,13 @@ class Agent:
 
         else:
             chain = LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
-            return chain.run(
+            chain_results = chain.run(
                 name=self.user_id,
-                relevant_preferences=relevant_preferences.page_content,
-                relevant_dislikes=relevant_dislikes.page_content,
+                relevant_preferences=relevant_preferences,
+                relevant_dislikes=relevant_dislikes,
             ).strip()
+            print(chain_results)
+            return chain_results
 
     def update_agent_preferences(self, preferences: str):
         """Serves to update agents preferences so that they can be used in summary"""
@@ -287,6 +288,7 @@ class Agent:
             preferences=preferences,
             name=self.user_id,
         ).strip()
+        print(chain_result)
         return self._update_memories(chain_result, namespace="PREFERENCES")
 
     def update_agent_taboos(self, dislikes: str):
@@ -352,7 +354,7 @@ class Agent:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def recipe_generation(self, prompt: str, model_speed: str):
+    def recipe_generation(self, prompt: str, prompt_template:str, json_example:str, model_speed: str,):
         """Generates a recipe solution in json"""
 
         json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
@@ -642,7 +644,7 @@ class Agent:
             "website": website,
         }
 
-    async def restaurant_generation(self, prompt: str, model_speed: str):
+    async def restaurant_generation(self, prompt: str,prompt_template:str, json_example:str, model_speed: str):
         """Serves to suggest a restaurant to the agent"""
 
         prompt = """
@@ -724,13 +726,7 @@ class Agent:
 
     def voice_text_input(self, query: str, model_speed: str):
         """Serves to generate sub goals for the user and or update the user's preferences"""
-        from langchain.agents import initialize_agent, AgentType
-        from pydantic import BaseModel, Field
-        from langchain import PromptTemplate
-        from langchain.llms.openai import OpenAI
-        from langchain.tools import BaseTool, StructuredTool, Tool, tool
 
-        llm = self.llm
 
         class GoalWrapper(BaseModel):
             observation: str = Field(
@@ -759,10 +755,10 @@ class Agent:
             return self._update_memories(observation, "PREFERENCES")
 
         agent = initialize_agent(
-            llm=llm,
+            llm=self.llm_fast,
             tools=[goal_update_wrapper, preferences_wrapper],
-            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,
+            agent=AgentType.OPENAI_FUNCTIONS,
+            verbose=self.verbose,
         )
 
         prompt = """
@@ -788,7 +784,7 @@ class Agent:
         overall_chain = SimpleSequentialChain(
             chains=[summary_chain, agent], verbose=True
         )
-        output = overall_chain.run(query=query)
+        output = overall_chain.run(query)
         return output
 
     def fetch_user_summary(self, model_speed: str):
@@ -811,10 +807,10 @@ if __name__ == "__main__":
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
-    # agent.update_agent_preferences("Alergic to corn")
+    #agent.update_agent_preferences("Alergic to corn")
     # agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     # agent.update_agent_summary(model_speed="slow")
-    # agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
@@ -822,5 +818,5 @@ if __name__ == "__main__":
 
     # print(result)
     # agent._test()
-    agent.update_agent_summary(model_speed="slow")
-    # agent.voice_text_input_imp("Core prompt ", model_speed="slow")
+    # agent.update_agent_summary(model_speed="slow")
+    agent.voice_text_input("Core prompt ", model_speed="slow")

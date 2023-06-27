@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
 
 env:
   AWS_ROLE_DEV_CICD: "arn:aws:iam::463722570299:role/promethai-dev-base-role-github-ci-cd"

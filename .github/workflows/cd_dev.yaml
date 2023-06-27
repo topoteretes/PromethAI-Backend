@@ -3,6 +3,8 @@ on:
     branches:
       - dev
       - feature/*
+    paths-ignore:
+      - '**.md'
 name: Publishing promethai-backend Docker image to prd ECR
 
 env:
