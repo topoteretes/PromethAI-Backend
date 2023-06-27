@@ -74,7 +74,7 @@
 - Personalized for each user
 - Introduces decision trees to help user navigate and decide on a solution
 - Runs asynchronusly
-- For App builds, check out this repo [promethAI-GUI](https://github.com/topoteretes/PromethAI-Backend-Mobile)
+- For App builds, check out this repo [promethAI-GUI](https://github.com/topoteretes/PromethAI-Mobile)
 - Supports automating tasks and executing decisions
 - Multiple Vector DBs supported trough Langchain 
 - Low latency
