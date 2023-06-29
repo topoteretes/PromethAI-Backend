@@ -28,18 +28,19 @@ load_dotenv()
 
 app = FastAPI(debug=True)
 
+from typing import Optional
+# class Payload(BaseModel):
+#     user_id: str
+#     session_id: str
+#     prompt_struct: Optional[dict] = None
+#     model_speed: str
+#     category: Optional[str] = None
+#     from_: Optional[str] = None
+#     to: Optional[str] = None
+#     prompt: Optional[str] = None
 
 class Payload(BaseModel):
-    user_id: str
-    session_id: str
-    prompt_struct: dict
-    model_speed: str
-    category: str = None
-    from_: str = None
-    to: str = None
-    prompt: str = None
-
-
+    payload: Dict[str, Any]
 class ImageResponse(BaseModel):
     success: bool
     message: str
@@ -64,15 +65,21 @@ def splitter(t):
         }
     else:
         return None
+from auth.cognito.JWTBearer import JWTBearer
+from auth.auth import jwks
+auth = JWTBearer(jwks)
 
-@app.get("/")
+from fastapi import Depends
+
+
+@app.get("/", )
 async def root():
     """
     Root endpoint that returns a welcome message.
     """
     return {"message": "Hello, World, I am alive!"}
 
-@app.get("/health")
+@app.get("/health",dependencies=[Depends(auth)])
 def health_check():
     """
     Health check endpoint that returns the server status.
@@ -153,8 +160,11 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
 
 
 
-def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str):
-    @app.post(f"/{category}/prompt-to-choose-meal-tree", response_model=dict)
+def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
+    class Payload(BaseModel):
+        payload: Dict[str, Any]
+
+    @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict)
     async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -170,23 +180,23 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         )
 
         return JSONResponse(content={"response": json.loads(result)})
-    @app.post(f"/{category}/prompt-to-decompose-meal-tree-categories/", response_model=dict)
-    async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
-        json_payload = request_data.dict()
+
+    #this doesn't work
+    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict)
+    async def prompt_to_decompose_categories(request_data: Payload) -> dict:
+        json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         output = await agent.prompt_decompose_to_meal_tree_categories(
             json_payload["prompt_struct"],
             assistant_category=category,
             model_speed=json_payload["model_speed"],
-
         )
-
-        return {"response": output}
+        return JSONResponse(content={"response": output})
 
     @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict)
     async def update_agent_summary(request_data: Payload) -> dict:
-        json_payload = request_data.dict()
+        json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         output = await agent.update_agent_summary(
@@ -195,9 +205,9 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
         return {"response": output}
 
-    @app.post(f"/{category}/prompt-to-update-meal-tree/{solution_type}", response_model=dict)
-    async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
-        json_payload = request_data.dict()
+    @app.post(f"/{category}/prompt-to-update-tree", response_model=dict)
+    async def prompt_to_update_tree(request_data: Payload) -> dict:
+        json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         output = agent.prompt_to_update_meal_tree(
@@ -211,7 +221,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
     @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict)
     async def fetch_user_summary(request_data: Payload) -> dict:
-        json_payload = request_data.dict()
+        json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         output = agent.fetch_user_summary(model_speed=json_payload["model_speed"])
@@ -220,7 +230,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
     @app.post(f"/{category}/request/{solution_type}", response_model=dict)
     async def solution_request(request_data: Payload) -> dict:
-        json_payload = request_data.dict()
+        json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         method_to_call = getattr(agent, f"{solution_type}_generation")
@@ -238,18 +248,18 @@ for category in data['categories']:
         create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
 
 
-# @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
-# async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
-#     json_payload = request_data.payload
-#     agent = Agent()
-#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-#     output = await agent.prompt_decompose_to_meal_tree_categories(
-#         json_payload["prompt_struct"],
-#         assistant_category="food",
-#         model_speed=json_payload["model_speed"],
-#     )
-#
-#     return JSONResponse(content={"response": output})
+@app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
+async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    output = await agent.prompt_decompose_to_meal_tree_categories(
+        json_payload["prompt_struct"],
+        assistant_category="food",
+        model_speed=json_payload["model_speed"],
+    )
+
+    return JSONResponse(content={"response": output})
 #
 #
 # @app.post("/update-agent-summary", response_model=dict)
