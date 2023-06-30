@@ -16,6 +16,7 @@ services:
     profiles: ["exclude-from-up"] # Use `docker-compose run teenage-agi` to get an attached container
     ports:
       - 8000:8000
+      - 443:443
 
   db_agi:
     image: postgres:14-alpine
