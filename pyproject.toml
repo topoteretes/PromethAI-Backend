@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = "v0.0.218"
+langchain = "v0.0.217"
 nltk = "3.8.1"
 openai = "0.27.8"
 pinecone-client = "2.2.2"
