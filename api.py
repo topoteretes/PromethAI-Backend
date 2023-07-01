@@ -46,6 +46,14 @@ class ImageResponse(BaseModel):
     message: str
 
 
+
+
+
+
+
+
+
+# #
 def splitter(t):
     """ Split a string into a list of strings, standardize the format of the strings,
     laods them as json, and returns the json."""

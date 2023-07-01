@@ -342,7 +342,7 @@ class Agent:
     def prompt_correction(self, prompt_source: str, model_speed: str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if possible"""
+        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Dishes should not be cuisine. """
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
@@ -436,7 +436,7 @@ class Agent:
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' but without '{{base_value}} ' nor {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' including '{{base_value}} ' nor {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
         Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
@@ -497,15 +497,16 @@ class Agent:
             combined_json = {"results": results_list}
             return combined_json
 
-    def prompt_to_choose_meal_tree(
-        self, prompt: str, model_speed: str, assistant_category: str
-    ):
+    def prompt_to_choose_meal_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+
+        json_basis = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        #json_basis = """<category1>=<decision1>;<decision1>=<option1>,<option2>,<option3>;<category2>=<decision2>;<decision2>=<option4>,<option5>,<option6>"""
+        # json_example = json_example.replace("{", "{{").replace("}", "}}")
         prompt_template = """Known user summary: '{{ user_summary }} '.
         Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
         Do not include personality, user summary, personal preferences, or update time to categories. 
-        Present answer in one line and in property structure : {{json_example}}"""
+        Present answer in one line  decomposed {{ json_basis }} """
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -527,6 +528,7 @@ class Agent:
 
         output = template.render(
             prompt_str=prompt,
+            json_basis=json_basis,
             json_example=json_example,
             user_summary=agent_summary,
             assistant_category=assistant_category,
