@@ -12,22 +12,18 @@
 <p align="center"><i>Open-source framework that gives you AI Agents that help you navigate decision-making, get personalized goals and  execute them </i></p>
 
 <p align="center">
-<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/fork" target="blank">
-<img src="https://img.shields.io/github/forks/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI forks"/>
+<a href="https://github.com/topoteretes/PromethAI-Backend/fork" target="blank">
+<img src="https://img.shields.io/github/forks/topoteretes/PromethAI-Backend?style=for-the-badge" alt="promethAI forks"/>
 </a>
 
-<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/stargazers" target="blank">
-<img src="https://img.shields.io/github/stars/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI stars"/>
+<a href="https://github.com/topoteretes/PromethAI-Backend/stargazers" target="blank">
+<img src="https://img.shields.io/github/stars/topoteretes/PromethAI-Backend?style=for-the-badge" alt="promethAI stars"/>
 </a>
-<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/pulls" target="blank">
-<img src="https://img.shields.io/github/issues-pr/topoteretes/PromethAI-Backend-Backend?style=for-the-badge" alt="promethAI pull-requests"/>
+<a href="https://github.com/topoteretes/PromethAI-Backend/pulls" target="blank">
+<img src="https://img.shields.io/github/issues-pr/topoteretes/PromethAI-Backend?style=for-the-badge" alt="promethAI pull-requests"/>
 </a>
-<a href='https://github.com/topoteretes/PromethAI-Backend-Backend/releases'>
-<img src='https://img.shields.io/github/release/topoteretes/PromethAI-Backend-Backend?&label=Latest&style=for-the-badge'>
-</a>
-
-<a href="https://github.com/topoteretes/PromethAI-Backend-Backend/commits" target="blank">
-<img src="https://img.shields.io/github/commits-since/topoteretes/PromethAI-Backend-Backend/v0.0.3.svg?style=for-the-badge" alt="promethAI Commits"/>
+<a href='https://github.com/topoteretes/PromethAI-Backend/releases'>
+<img src='https://img.shields.io/github/release/topoteretes/PromethAI-Backend?&label=Latest&style=for-the-badge'>
 </a>
 
 </p>
@@ -75,7 +71,7 @@
 - Personalized for each user
 - Introduces decision trees to help user navigate and decide on a solution
 - Runs asynchronusly
-- For App builds, check out this repo [promethAI-GUI](https://github.com/topoteretes/PromethAI-Backend-Mobile)
+- For App builds, check out this repo [promethAI-GUI](https://github.com/topoteretes/PromethAI-Mobile)
 - Supports automating tasks and executing decisions
 - Multiple Vector DBs supported trough Langchain 
 - Low latency
