@@ -1,12 +1,11 @@
 FROM python:3.11-slim
 
-# Set build argument
-ARG API_ENABLED
 
-# Set environment variable based on the build argument
-ENV API_ENABLED=${API_ENABLED} \
-    PIP_NO_CACHE_DIR=true
-ENV PATH="${PATH}:/root/.poetry/bin"
+# Set build argument and environment variable for stage
+ARG STAGE
+ENV STAGE=${STAGE} \
+    PIP_NO_CACHE_DIR=true \
+    PATH="${PATH}:/root/.poetry/bin"
 RUN pip install poetry
 
 WORKDIR /app

@@ -20,6 +20,7 @@ echo "Building docker image ${FULL_IMAGE_NAME} located in dir ${app_dir}"
 
 pushd "${APP_DIR}" &&
   docker buildx build --platform linux/amd64 \
+    --build-arg STAGE=${STAGE} \
     -t "${FULL_IMAGE_NAME}" . &&
   echo "${VERSION}" >/tmp/.DOCKER_IMAGE_VERSION &&
   echo "Successfully built docker image ${FULL_IMAGE_NAME}"
