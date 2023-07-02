@@ -441,7 +441,7 @@ class Agent:
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' not including '{{base_value}} ' nor  {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}'  definitely including '{{base_value}} ' but not including  {{exclusion_categories}}. Make sure choices further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
         Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
@@ -508,7 +508,7 @@ class Agent:
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """Known user summary: '{{ user_summary }} '.
         Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        Do not include personality, user summary, personal preferences, or update time to categories. 
+        Do not include budget, personality, user summary, personal preferences, or update time to categories. 
         Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
