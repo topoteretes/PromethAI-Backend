@@ -544,7 +544,7 @@ class Agent:
             json_data = json.dumps(output)
             return json_data
         else:
-            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
+            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=False)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
 
             vectorstore: Pinecone = Pinecone.from_existing_index(
