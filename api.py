@@ -139,11 +139,8 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     logging.info("Correcting grammar %s", json_payload["prompt_source"])
 
-    output = agent.prompt_correction(
-        json_payload["prompt_source"], model_speed=json_payload["model_speed"]
-    )
-    return JSONResponse(content={"response": output})
-
+    output = agent.prompt_correction(json_payload["prompt_source"], model_speed= json_payload["model_speed"])
+    return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 
 @app.post("/action-add-zapier-calendar-action", response_model=dict)
@@ -243,7 +240,8 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
             model_speed=json_payload["model_speed"],
         )
 
-        return {"response": output}
+        print("HERE IS THE OUTPUT", output)
+        return JSONResponse(content={"response": output})
 
     @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict)
     async def fetch_user_summary(request_data: Payload) -> dict:
@@ -261,7 +259,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         method_to_call = getattr(agent, f"{solution_type}_generation")
         output = method_to_call(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
-        return {"response": json.loads(output)}
+        return JSONResponse(content={"response": json.loads(output)})
 
 
 # Load categories from a yaml file
