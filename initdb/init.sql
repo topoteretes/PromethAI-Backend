@@ -1,4 +1,0 @@
-CREATE TABLE pinecone_id (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL
-);
