@@ -505,15 +505,11 @@ class Agent:
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        json_basis = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        #json_basis = """ {"response": {"results": [{"category": "location", "options": [{"category": "New York", "options": [{"category": "Manhattan"}, {"category": "Brooklyn"}, {"category": "Queens"}]}]}, {"category": "price" ..."""
-        #json_basis = """<category1>=<decision1>;<decision1>=<option1>,<option2>,<option3>;<category2>=<decision2>;<decision2>=<option4>,<option5>,<option6>"""
-        #json_basis = json_basis.replace("{", "{{").replace("}", "}}")
-        # prompt_template = """Known user summary: '{{ user_summary }} Decompose {{ prompt_str }} statement into category, decision groups. Provide three sub-options for each decision that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure: {{ json_basis }} ."""
+        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """Known user summary: '{{ user_summary }} '.
         Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        Do not include personality, user summary, personal preferences, or update time to categories.
-        Present answer in one line  decomposed {{ json_basis }} """
+        Do not include personality, user summary, personal preferences, or update time to categories. 
+        Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -535,8 +531,7 @@ class Agent:
 
         output = template.render(
             prompt_str=prompt,
-            json_basis=json_basis,
-            # json_example=json_example,
+            json_example=json_example,
             user_summary=agent_summary,
             assistant_category=assistant_category,
         )
