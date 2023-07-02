@@ -346,7 +346,7 @@ class Agent:
     def prompt_correction(self, prompt_source: str, model_speed: str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Dishes should not be cuisine. """
+        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Dishes should not be a cuisine """
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
@@ -441,7 +441,7 @@ class Agent:
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
         list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' including '{{base_value}} ' nor {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}' not including '{{base_value}} ' nor  {{exclusion_categories}}.that further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
         Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
         list_of_items = base_prompt.split(";")
 
