@@ -93,7 +93,25 @@ def health_check():
     Health check endpoint that returns the server status.
     """
     return {"status": "OK"}
+@app.post("/test", response_model=dict)
+async def test(request_data: Payload) -> dict:
+    """
+    Endpoint to clear the cache.
 
+    Parameters:
+    request_data (Payload): The request data containing the user and session IDs.
+
+    Returns:
+    dict: A dictionary with a message indicating the cache was cleared.
+    """
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    try:
+        agent._simple_test()
+        return JSONResponse(content={"response": "Test"}, status_code=200)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @app.post("/clear-cache", response_model=dict)
 async def clear_cache(request_data: Payload) -> dict:
     """
@@ -105,7 +123,7 @@ async def clear_cache(request_data: Payload) -> dict:
     Returns:
     dict: A dictionary with a message indicating the cache was cleared.
     """
-    json_payload = request_data.dict()
+    json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
     try:
@@ -309,21 +327,21 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
 #     return JSONResponse(content={"response": output})
 #
 #
-# @app.post("/recipe-request", response_model=dict)
-# async def recipe_request(request_data: Payload) -> dict:
-#     if CANNED_RESPONSES:
-#         with open("fixtures/recipe_response.json", "r") as f:
-#             json_data = json.load(f)
-#             stripped_string_dict = {"response": json_data}
-#             return JSONResponse(content=stripped_string_dict)
-#
-#     json_payload = request_data.payload
-#     # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
-#     agent = Agent()
-#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-#
-#     output = agent.recipe_generation(json_payload["prompt"], model_speed="slow")
-#     return JSONResponse(content={"response": json.loads(output)})
+@app.post("/recipe-request", response_model=dict)
+async def recipe_request(request_data: Payload) -> dict:
+    if CANNED_RESPONSES:
+        with open("fixtures/recipe_response.json", "r") as f:
+            json_data = json.load(f)
+            stripped_string_dict = {"response": json_data}
+            return JSONResponse(content=stripped_string_dict)
+
+    json_payload = request_data.payload
+    # factors_dict = {factor['name']: factor['amount'] for factor in json_payload['factors']}
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+
+    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    return JSONResponse(content={"response": json.loads(output)})
 
 
 # @app.post("/restaurant-request", response_model=dict)

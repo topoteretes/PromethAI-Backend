@@ -47,20 +47,24 @@ from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
 
-# if os.getenv("STAGE", "") != "dev":
-REDIS_HOST = os.getenv(
-    "REDIS_HOST",
-    "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-)
-langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-logging.info("Using redis cache")
-# else:
-#     REDIS_HOST = os.getenv(
-#         "0.0.0.0",
-#         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-#     )
-#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-#     logging.info("Using localredis cache")
+# langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
+# logging.info("Using redis cache")
+
+
+if os.getenv("STAGE", "") == "dev":
+    REDIS_HOST = os.getenv(
+        "REDIS_HOST",
+        "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+    )
+    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+    logging.info("Using redis cache")
+else:
+    REDIS_HOST = os.getenv(
+        "0.0.0.0",
+        "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+    )
+    langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
+    logging.info("Using localredis cache")
 
 
 
@@ -101,7 +105,7 @@ class Agent:
             temperature=0.0,
             max_tokens=600,
             openai_api_key=self.OPENAI_API_KEY,
-            model_name="text-davinci-003",
+            model_name=self.openai_model4,
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
@@ -348,21 +352,22 @@ class Agent:
         complete_query = PromptTemplate.from_template(output)
 
         chain = LLMChain(
-            llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose
+            llm=self.llm, prompt=complete_query, verbose=self.verbose
         )
         chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
         json_data = json.dumps(chain_result)
         return json_data
 
-    def recipe_generation(self, prompt: str, prompt_template:str, json_example:str, model_speed: str,):
+    def recipe_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
         """Generates a recipe solution in json"""
 
         json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
         prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
-                 Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else."""
+                Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else."""
         json_example = json_example.replace("{", "{{").replace("}", "}}")
         template = Template(prompt_base)
-        output = template.render(prompt=prompt, json_example=json_example)
+        output = template.render(prompt=prompt
+                                 , json_example=json_example)
         complete_query = output
         complete_query = PromptTemplate.from_template(complete_query)
 
@@ -371,7 +376,7 @@ class Agent:
             return output
         else:
             chain = LLMChain(
-                llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose
+                llm=self.llm, prompt=complete_query, verbose=self.verbose
             )
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             #
@@ -424,7 +429,7 @@ class Agent:
             exclusion_categories=list_as_string,
         )
         complete_query = PromptTemplate.from_template(output)
-        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+        chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         json_o = json.loads(chain_result)
         value_list = [{"category": value} for value in base_value.split(",")]
@@ -500,15 +505,15 @@ class Agent:
     def prompt_to_choose_meal_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        # json_basis = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        json_basis = """ <category1>=<decision1>;<category2>=<decision2>..."""
         #json_basis = """ {"response": {"results": [{"category": "location", "options": [{"category": "New York", "options": [{"category": "Manhattan"}, {"category": "Brooklyn"}, {"category": "Queens"}]}]}, {"category": "price" ..."""
-        json_basis = """<category1>=<decision1>;<decision1>=<option1>,<option2>,<option3>;<category2>=<decision2>;<decision2>=<option4>,<option5>,<option6>"""
+        #json_basis = """<category1>=<decision1>;<decision1>=<option1>,<option2>,<option3>;<category2>=<decision2>;<decision2>=<option4>,<option5>,<option6>"""
         #json_basis = json_basis.replace("{", "{{").replace("}", "}}")
-        prompt_template = """Known user summary: '{{ user_summary }} Decompose {{ prompt_str }} statement into category, decision groups. Provide three sub-options for each decision that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure: {{ json_basis }} ."""
-        # prompt_template = """Known user summary: '{{ user_summary }} '.
-        # Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        # Do not include personality, user summary, personal preferences, or update time to categories.
-        # Present answer in one line  decomposed {{ json_basis }} """
+        # prompt_template = """Known user summary: '{{ user_summary }} Decompose {{ prompt_str }} statement into category, decision groups. Provide three sub-options for each decision that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure: {{ json_basis }} ."""
+        prompt_template = """Known user summary: '{{ user_summary }} '.
+        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        Do not include personality, user summary, personal preferences, or update time to categories.
+        Present answer in one line  decomposed {{ json_basis }} """
 
         self.init_pinecone(index_name=self.index)
         try:
