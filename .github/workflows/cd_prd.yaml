@@ -52,6 +52,7 @@ jobs:
           create_tag_and_release:
       - name: Create Tag and Release
         runs-on: ubuntu-latest
+        uses: actions/checkout@v3
         needs: publish_docker_to_ecr  # ensure this job runs after Docker image is pushed
         steps:
           - name: Check out code
