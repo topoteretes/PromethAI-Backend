@@ -23,6 +23,7 @@ jobs:
       - name: Take code from repo
         uses: actions/checkout@v3
       - name: Set environment variable for stage
+        id: set-env
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "STAGE=prd" >> $GITHUB_ENV
