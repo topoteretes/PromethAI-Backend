@@ -1,0 +1,11 @@
+categories:
+  - name: food
+    solution_types:
+      - name: recipe
+        prompt: |-
+          Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
+          Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else.
+        json_example: '{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}'
+      - name: restaurant_request
+        prompt: "Prompt for type2"
+        json_example: '{"key": "value"}'

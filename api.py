@@ -1,15 +1,16 @@
 from chains import Agent
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any
+import re
 import json
 import logging
 import os
 import uvicorn
 from fastapi import Request
-
+import yaml
+from fastapi import HTTPException
 CANNED_RESPONSES = False
 
 # Set up logging
@@ -21,28 +22,38 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 from dotenv import load_dotenv
 
-import re
 
 load_dotenv()
 
 
 app = FastAPI(debug=True)
 
+from typing import Optional
+# class Payload(BaseModel):
+#     user_id: str
+#     session_id: str
+#     prompt_struct: Optional[dict] = None
+#     model_speed: str
+#     category: Optional[str] = None
+#     from_: Optional[str] = None
+#     to: Optional[str] = None
+#     prompt: Optional[str] = None
 
 class Payload(BaseModel):
     payload: Dict[str, Any]
-
-
 class ImageResponse(BaseModel):
     success: bool
     message: str
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello, World, I am alive!"}
 
 
+
+
+
+
+
+# #
 def splitter(t):
     lst = t.split("=")
     if len(lst) >= 2:
@@ -60,15 +71,74 @@ def splitter(t):
         }
     else:
         return None
+from auth.cognito.JWTBearer import JWTBearer
+from auth.auth import jwks
+auth = JWTBearer(jwks)
+
+from fastapi import Depends
 
 
-@app.post("/clear-cache", response_model=dict)
-async def clear_cache(request_data: Payload) -> dict:
+@app.get("/", )
+async def root():
+    """
+    Root endpoint that returns a welcome message.
+    """
+    return {"message": "Hello, World, I am alive!"}
+
+@app.get("/health",dependencies=[Depends(auth)])
+def health_check():
+    """
+    Health check endpoint that returns the server status.
+    """
+    return {"status": "OK"}
+@app.post("/test", response_model=dict)
+async def test(request_data: Payload) -> dict:
+    """
+    Endpoint to clear the cache.
+
+    Parameters:
+    request_data (Payload): The request data containing the user and session IDs.
+
+    Returns:
+    dict: A dictionary with a message indicating the cache was cleared.
+    """
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    agent.clear_cache()
-    return JSONResponse(content={"response": "Cache cleared"})
+    try:
+        agent._simple_test()
+        return JSONResponse(content={"response": "Test"}, status_code=200)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/clear-cache", response_model=dict)
+async def clear_cache(request_data: Payload) -> dict:
+    """
+    Endpoint to clear the cache.
+
+    Parameters:
+    request_data (Payload): The request data containing the user and session IDs.
+
+    Returns:
+    dict: A dictionary with a message indicating the cache was cleared.
+    """
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    try:
+        agent.clear_cache()
+        return JSONResponse(content={"response": "Cache cleared"}, status_code=200)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/correct-prompt-grammar", response_model=dict)
+async def prompt_to_correct_grammar(request_data: Payload) -> dict:
+    json_payload = request_data.payload
+    agent = Agent()
+    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+    logging.info("Correcting grammar %s", json_payload["prompt_source"])
+
+    output = agent.prompt_correction(json_payload["prompt_source"], model_speed= json_payload["model_speed"])
+    return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 
 @app.post("/action-add-zapier-calendar-action", response_model=dict)
@@ -108,6 +178,96 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     )
 
     return JSONResponse(content={"response": json.loads(result)})
+
+
+
+def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
+    class Payload(BaseModel):
+        payload: Dict[str, Any]
+
+    @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict)
+    async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = agent.prompt_to_choose_meal_tree(
+            json_payload["prompt"],
+            model_speed=json_payload["model_speed"],
+            assistant_category=category,
+        )
+        logging.info("HERE IS THE CHAIN RESULT %s", output)
+        result = json.dumps(
+            {"results": list(map(splitter, output.replace('"', "").split(";")))}
+        )
+
+        return JSONResponse(content={"response": json.loads(result)})
+
+    #this doesn't work
+    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict)
+    async def prompt_to_decompose_categories(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = await agent.prompt_decompose_to_meal_tree_categories(
+            json_payload["prompt_struct"],
+            assistant_category=category,
+            model_speed=json_payload["model_speed"],
+        )
+        return JSONResponse(content={"response": output})
+
+    @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict)
+    async def update_agent_summary(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = await agent.update_agent_summary(
+            model_speed=json_payload["model_speed"]
+        )
+
+        return {"response": output}
+
+    @app.post(f"/{category}/prompt-to-update-tree", response_model=dict)
+    async def prompt_to_update_tree(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = agent.prompt_to_update_meal_tree(
+            json_payload["category"],
+            json_payload["from"],
+            json_payload["to"],
+            model_speed=json_payload["model_speed"],
+        )
+
+        print("HERE IS THE OUTPUT", output)
+        return JSONResponse(content={"response": output})
+
+    @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict)
+    async def fetch_user_summary(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = agent.fetch_user_summary(model_speed=json_payload["model_speed"])
+
+        return {"response": output}
+
+    @app.post(f"/{category}/request/{solution_type}", response_model=dict)
+    async def solution_request(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        agent = Agent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        method_to_call = getattr(agent, f"{solution_type}_generation")
+        output = method_to_call(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        return JSONResponse(content={"response": json.loads(output)})
+
+
+# Load categories from a yaml file
+with open('assistant_templates.yaml', 'r') as file:
+    data = yaml.safe_load(file)
+
+# Create an endpoint for each category and solution type
+for category in data['categories']:
+    for solution_type in category['solution_types']:
+        create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
 
 
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
@@ -173,17 +333,17 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
-    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow")
+    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
     return JSONResponse(content={"response": json.loads(output)})
 
 
-@app.post("/restaurant-request", response_model=dict)
-async def restaurant_request(request_data: Payload) -> dict:
-    json_payload = request_data.payload
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.restaurant_generation(json_payload["prompt"], model_speed="slow")
-    return JSONResponse(content={"response": {"restaurants": output}})
+# @app.post("/restaurant-request", response_model=dict)
+# async def restaurant_request(request_data: Payload) -> dict:
+#     json_payload = request_data.payload
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     output = agent.restaurant_generation(json_payload["prompt"], model_speed="slow")
+#     return JSONResponse(content={"response": {"restaurants": output}})
 
 
 # @app.post("/delivery-request", response_model=dict)
@@ -208,14 +368,23 @@ async def voice_input(request_data: Payload) -> dict:
     return JSONResponse(content={"response": output})
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "OK"}
 
 
-def start_api_server():
-    # agent = establish_connection()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+def start_api_server(host: str = "0.0.0.0", port: int = 8000):
+    """
+    Start the API server using uvicorn.
+
+    Parameters:
+    host (str): The host for the server.
+    port (int): The port for the server.
+    """
+    try:
+        logger.info(f"Starting server at {host}:{port}")
+        uvicorn.run(app, host=host, port=port)
+    except Exception as e:
+        logger.exception(f"Failed to start server: {e}")
+        # Here you could add any cleanup code or error recovery code.
 
 
 if __name__ == "__main__":
