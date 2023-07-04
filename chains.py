@@ -51,21 +51,21 @@ from langchain import llm_cache
 # logging.info("Using redis cache")
 
 
-if os.getenv("STAGE", "") == "dev":
-    REDIS_HOST = os.getenv(
-        "REDIS_HOST",
-        "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-    )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-    logging.info("Using redis cache for DEV")
-else:
-    REDIS_HOST = os.getenv(
-        "REDIS_HOST",
-        "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-    )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-    logging.info("Using redis cache for PRD")
-
+# if os.getenv("STAGE", "") == "dev":
+#     REDIS_HOST = os.getenv(
+#         "REDIS_HOST",
+#         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+#     )
+#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+#     logging.info("Using redis cache for DEV")
+# else:
+#     REDIS_HOST = os.getenv(
+#         "REDIS_HOST",
+#         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+#     )
+#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+#     logging.info("Using redis cache for PRD")
+#
 
 
 class Agent:
@@ -358,13 +358,22 @@ class Agent:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def recipe_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
+    def solution_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
         """Generates a recipe solution in json"""
 
-        json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
-        prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
+
+        if prompt_template is None:
+            prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
                 Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else."""
-        json_example = json_example.replace("{", "{{").replace("}", "}}")
+        else:
+            prompt_base = prompt_template
+
+        if json_example is None:
+            json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
+        else:
+            json_example= json_example
+
+        json_example = str(json_example).replace("{", "{{").replace("}", "}}")
         template = Template(prompt_base)
         output = template.render(prompt=prompt
                                  , json_example=json_example)
@@ -651,7 +660,10 @@ class Agent:
     async def restaurant_generation(self, prompt: str,prompt_template:str, json_example:str, model_speed: str):
         """Serves to suggest a restaurant to the agent"""
 
-        prompt = """
+        if prompt:
+            prompt = prompt
+        else:
+            prompt = """
               Based on the following prompt {{prompt}} and all the history and information of this user,
                 Determine the type of restaurant you should offer to a customer. Make the recomendation very short and to a point, as if it is something you would type on google maps
             """

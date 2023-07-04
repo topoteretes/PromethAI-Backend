@@ -255,8 +255,9 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        method_to_call = getattr(agent, f"{solution_type}_generation")
-        output = method_to_call(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        # method_to_call = getattr(agent, f"{solution_type}_generation")
+        output = agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        output = output.replace("'", '"')
         return JSONResponse(content={"response": json.loads(output)})
 
 
@@ -333,7 +334,8 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
-    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    output = agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    output = output.replace("'", '"')
     return JSONResponse(content={"response": json.loads(output)})
 
 
