@@ -511,7 +511,7 @@ class Agent:
             combined_json = {"results": results_list}
             return combined_json
 
-    def prompt_to_choose_meal_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
@@ -582,7 +582,7 @@ class Agent:
 
             return chain_result.replace("'", '"')
 
-    async def prompt_decompose_to_meal_tree_categories(
+    async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
