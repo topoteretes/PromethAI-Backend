@@ -1,5 +1,6 @@
-
-
+from langchain.document_loaders import PyPDFLoader
+from langchain.indexes import VectorstoreIndexCreator
+from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
 from langchain import PromptTemplate
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
 import pinecone
@@ -30,7 +31,7 @@ import asyncio
 import logging
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
-
+from langchain.chains.summarize import load_summarize_chain
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
 from langchain.utilities.zapier import ZapierNLAWrapper
@@ -57,15 +58,15 @@ from langchain import llm_cache
 #         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
 #     )
 #     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-#     logging.info("Using redis cache")
+#     logging.info("Using redis cache for DEV")
 # else:
 #     REDIS_HOST = os.getenv(
 #         "REDIS_HOST",
 #         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
 #     )
-#     langchain.llm_cache = RedisCache(redis_=Redis(host=REDIS_HOST, port=6379, db=0))
-#     logging.info("Using localredis cache")
-
+#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+#     logging.info("Using redis cache for PRD")
+#
 
 
 class Agent:
@@ -133,6 +134,8 @@ class Agent:
         self.verbose: bool = True
         self.openai_temperature = 0.0
         self.index = "my-agent"
+        # docs = [Document(page_content=t) for t in pages[1:-1]]
+        # print('HERE IS THE LEN OF DOCS', str(len(docs)))
 
     def clear_cache(self):
         langchain.llm_cache.clear()
@@ -177,7 +180,25 @@ class Agent:
     #     observation: str = Field(description="should be what we are inserting into the memory")
     #     namespace: str = Field(description="should be the namespace of the VectorDB")
     # @tool("_update_memories", return_direct=True, args_schema = VectorDBInput)
-    def _update_memories(self, observation: str, namespace: str) -> None:
+
+    # def insert_documents(self, documents, namespace):
+    #     from datetime import datetime
+    #
+    #     retriever = vectorstore.as_retriever()
+    #     retriever.add_documents(
+    #         [
+    #             Document(
+    #                 page_content=observation,
+    #                 metadata={
+    #                     "inserted_at": datetime.now(),
+    #                     "text": observation,
+    #                     "user_id": self.user_id,
+    #                 },
+    #                 namespace=namespace,
+    #             )
+    #         ]
+    #     )
+    def _update_memories(self, observation: str, namespace: str, page:str = "", source:str="") -> None:
         """Update related characteristics, preferences or dislikes for a user."""
         from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -196,6 +217,8 @@ class Agent:
                         "inserted_at": datetime.now(),
                         "text": observation,
                         "user_id": self.user_id,
+                        "page": page,
+                        "source": source,
                     },
                     namespace=namespace,
                 )
@@ -358,13 +381,22 @@ class Agent:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def recipe_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
+    def solution_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
         """Generates a recipe solution in json"""
 
-        json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
-        prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
+
+        if prompt_template is None:
+            prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
                 Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else."""
-        json_example = json_example.replace("{", "{{").replace("}", "}}")
+        else:
+            prompt_base = prompt_template
+
+        if json_example is None:
+            json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
+        else:
+            json_example= json_example
+
+        json_example = str(json_example).replace("{", "{{").replace("}", "}}")
         template = Template(prompt_base)
         output = template.render(prompt=prompt
                                  , json_example=json_example)
@@ -502,14 +534,73 @@ class Agent:
             combined_json = {"results": results_list}
             return combined_json
 
-    def prompt_to_choose_meal_tree(self, prompt: str, model_speed: str, assistant_category: str):
+
+    def _loader(self, path: str, namespace: str):
+
+
+        loader = PyPDFLoader("document_store/nutrition/Human_Nutrition.pdf")
+        pages = loader.load_and_split()
+
+        print("PAGES", pages[0])
+
+        for page in pages:
+            self._update_memories(page.page_content, namespace, page.metadata["page"], page.metadata["source"])
+        return "Success"
+        # print(type(pages))
+
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
+        self.init_pinecone(index_name=self.index)
+        vectorstore: Pinecone = Pinecone.from_existing_index(
+            index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
+        )
+        retriever = vectorstore.as_retriever()
+
+        template = """
+        {summaries}
+        {question}
+        """
+
+        chain = RetrievalQAWithSourcesChain.from_chain_type(
+            llm=OpenAI(temperature=0),
+            chain_type="stuff",
+            retriever=retriever,
+            chain_type_kwargs={
+                "prompt": PromptTemplate(
+                    template=template,
+                    input_variables=["summaries", "question"],
+                ),
+            },
+        )
+        test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
+        print("TEST OUTPUT", test_output['answer'])
+
+        # prompt_template = """Retireve and summarize releavant information from the following document
+        #
+        #
+        # {text}
+        #
+        #
+        # Turn it into into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        # Do not include budget, personality, user summary, personal preferences, or update time to categories. Do not include information about publisher or details. """
+        # prompt_template = Template(prompt_template)
+        #
+        # prompt_template = prompt_template.render(
+        #     original_prompt=prompt,
+        #     assistant_category=assistant_category)
+        # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])
+        # chain_summary = load_summarize_chain(OpenAI(temperature=0), chain_type="map_reduce", return_intermediate_steps=True,
+        #                              map_prompt=PROMPT, combine_prompt=PROMPT)
+        # test_output = chain_summary({"input_documents": pages[1:20]},   return_only_outputs=True)
+        #
+        # print("TEST OUTPUT", test_output)
+
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        prompt_template = """Known user summary: '{{ user_summary }} '.
+        prompt_template = """Known user summary: '{{ user_summary }} '. 
         Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        Do not include budget, personality, user summary, personal preferences, or update time to categories. 
-        Present answer in one line and in property structure : {{json_example}}"""
+        Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
+        Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -534,6 +625,7 @@ class Agent:
             json_example=json_example,
             user_summary=agent_summary,
             assistant_category=assistant_category,
+            nutritional_context=test_output['answer']
         )
         complete_query = output
         print("HERE IS THE COMPLETE QUERY", complete_query)
@@ -570,10 +662,11 @@ class Agent:
                     )
                 ]
             )
+            print
 
             return chain_result.replace("'", '"')
 
-    async def prompt_decompose_to_meal_tree_categories(
+    async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
@@ -651,7 +744,10 @@ class Agent:
     async def restaurant_generation(self, prompt: str,prompt_template:str, json_example:str, model_speed: str):
         """Serves to suggest a restaurant to the agent"""
 
-        prompt = """
+        if prompt:
+            prompt = prompt
+        else:
+            prompt = """
               Based on the following prompt {{prompt}} and all the history and information of this user,
                 Determine the type of restaurant you should offer to a customer. Make the recomendation very short and to a point, as if it is something you would type on google maps
             """
@@ -811,16 +907,16 @@ if __name__ == "__main__":
     # agent.goal_optimization(factors={}, model_speed="slow")
     # agent._update_memories("lazy, stupid and hungry", "TRAITS")
     # agent.update_agent_traits("His personality is greedy")
-    #agent.update_agent_preferences("Alergic to corn")
+    # agent.update_agent_preferences("Alergic to corn")
     # agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     # agent.update_agent_summary(model_speed="slow")
     #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
-    # #agent.prompt_to_choose_meal_tree(prompt="I want would like a quick meal vietnamese cuisine", assistant_category="food", model_speed="slow")
+    agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     # print(result)
     # agent._test()
     # agent.update_agent_summary(model_speed="slow")
-    agent.voice_text_input("Core prompt ", model_speed="slow")
+    #agent.voice_text_input("Core prompt ", model_speed="slow")

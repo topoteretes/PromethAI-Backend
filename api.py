@@ -167,7 +167,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.prompt_to_choose_meal_tree(
+    output = agent.prompt_to_choose_tree(
         json_payload["prompt"],
         model_speed=json_payload["model_speed"],
         assistant_category="food",
@@ -176,7 +176,6 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     result = json.dumps(
         {"results": list(map(splitter, output.replace('"', "").split(";")))}
     )
-
     return JSONResponse(content={"response": json.loads(result)})
 
 
@@ -186,11 +185,11 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         payload: Dict[str, Any]
 
     @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict)
-    async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
+    async def prompt_to_choose_tree(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = agent.prompt_to_choose_meal_tree(
+        output = agent.prompt_to_choose_tree(
             json_payload["prompt"],
             model_speed=json_payload["model_speed"],
             assistant_category=category,
@@ -208,7 +207,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = await agent.prompt_decompose_to_meal_tree_categories(
+        output = await agent.prompt_decompose_to_tree_categories(
             json_payload["prompt_struct"],
             assistant_category=category,
             model_speed=json_payload["model_speed"],
@@ -255,8 +254,9 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         json_payload = request_data.payload
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        method_to_call = getattr(agent, f"{solution_type}_generation")
-        output = method_to_call(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        # method_to_call = getattr(agent, f"{solution_type}_generation")
+        output = agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        output = output.replace("'", '"')
         return JSONResponse(content={"response": json.loads(output)})
 
 
@@ -275,7 +275,7 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.prompt_decompose_to_meal_tree_categories(
+    output = await agent.prompt_decompose_to_tree_categories(
         json_payload["prompt_struct"],
         assistant_category="food",
         model_speed=json_payload["model_speed"],
@@ -333,7 +333,8 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
-    output = agent.recipe_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    output = agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    output = output.replace("'", '"')
     return JSONResponse(content={"response": json.loads(output)})
 
 

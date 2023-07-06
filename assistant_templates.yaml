@@ -6,6 +6,15 @@ categories:
           Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
           Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else.
         json_example: '{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}'
-      - name: restaurant_request
-        prompt: "Prompt for type2"
-        json_example: '{"key": "value"}'
+      - name: restaurant
+        prompt: |-
+          Create a detailed weekly workout routine based on the following '{{prompt}}': I want to gain muscle mass in the next six month . Instructions  should have medium detail.
+          Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else.
+        json_example: '{"plans":[{"day":"Monday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Tuesday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Wednesday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Thursday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Friday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Saturday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Sunday","workouts":[{"title":"example workout","instructions":["example instruction"]}]}]}'
+  - name: fitness
+    solution_types:
+      - name: exercise
+        prompt: |-
+              Create a detailed weekly workout routine based on the following '{{prompt}}': I want to gain muscle mass in the next six month . Instructions  should have medium detail.
+              Answer a condensed valid JSON in this format: {{ json_example}}  Do not explain or write anything else.
+        json_example: '{"plans":[{"day":"Monday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Tuesday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Wednesday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Thursday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Friday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Saturday","workouts":[{"title":"example workout","instructions":["example instruction"]}]} ,{"day":"Sunday","workouts":[{"title":"example workout","instructions":["example instruction"]}]}]}'
