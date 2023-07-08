@@ -1,4 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.10.10-slim
+
+
 
 
 # Set build argument and environment variable for stage
