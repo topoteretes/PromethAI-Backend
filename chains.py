@@ -104,7 +104,7 @@ class Agent:
         self.openai_model4 = "gpt-4-0613"
         self.llm = OpenAI(
             temperature=0.0,
-            max_tokens=600,
+            max_tokens=1200,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model4,
         )
