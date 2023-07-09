@@ -1,4 +1,4 @@
-from chains import Agent
+from llm_chains.chains import Agent
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -178,6 +178,25 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     )
     return JSONResponse(content={"response": json.loads(result)})
 
+def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
+    class Payload(BaseModel):
+        payload: Dict[str, Any]
+
+    @app.post(f"/chatbot/{category}", response_model=dict)
+    async def prompt_to_choose_tree(request_data: Payload) -> dict:
+        json_payload = request_data.payload
+        from bots.bot_extension import AppAgent
+        agent =  AppAgent()
+        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+        output = agent.query(
+            json_payload["prompt"]
+        )
+        logging.info("HERE IS THE CHAIN RESULT %s", output)
+
+
+        return JSONResponse(content={"response": output})
+
+
 
 
 def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
@@ -265,11 +284,19 @@ with open('assistant_templates.yaml', 'r') as file:
     data = yaml.safe_load(file)
 
 # Create an endpoint for each category and solution type
-for category in data['categories']:
-    for solution_type in category['solution_types']:
-        create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
-
-
+for role in ['assistant', 'chatbot']:
+    # If the role is 'assistant'
+    if role == 'assistant':
+        # Iterate through the categories and solution_types
+        for category in data[role]['categories']:
+            for solution_type in category['solution_types']:
+                create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
+    # If the role is 'chatbot'
+    elif role == 'chatbot':
+        pass
+        # Iterate through the categories and resources
+        # for category in data[role]['categories']:
+        #         create_endpoint_with_resources(category['name'])
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -334,7 +361,7 @@ async def recipe_request(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
     output = agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
-    output = output.replace("'", '"')
+    output = str(output).replace("'", '"')
     return JSONResponse(content={"response": json.loads(output)})
 
 

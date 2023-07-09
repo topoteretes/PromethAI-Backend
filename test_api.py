@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from chains import Agent
+from llm_chains.chains import Agent
 from api import app
 
 client = TestClient(app)
