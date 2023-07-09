@@ -416,16 +416,19 @@ class Agent:
 
 
         # Define the response schema
-        class RecordRecipe(BaseModel):
-            """Record some identifying information about a pe."""
-            recipes: str = Field(..., description="Name of the recipe")
+        class Recipe(BaseModel):
+            """Schema for an individual recipe."""
             title: str = Field(..., description="Title of the recipe")
-            rating:  str = Field(None, description="Recipe rating")
-            prep_time:  str = Field(None, description="Time to prepare recipe")
-            cook_time:  str = Field(None, description="Time to cook recipe")
-            description:  str = Field(None, description="Description of recipe")
-            ingredients:  str = Field(None, description="All recipe ingredients")
-            instructions:  str = Field(None, description="All recipe instructions for making a recipe")
+            rating: str = Field(None, description="Recipe rating")
+            prep_time: str = Field(None, description="Time to prepare recipe")
+            cook_time: str = Field(None, description="Time to cook recipe")
+            description: str = Field(None, description="Description of recipe")
+            ingredients: List[str] = Field(None, description="All recipe ingredients")
+            instructions: List[str] = Field(None, description="All recipe instructions for making a recipe")
+
+        class RecordRecipe(BaseModel):
+            """Schema for the record containing a list of recipes."""
+            recipes: List[Recipe] = Field(..., description="List of recipes")
 
         prompt_msgs = [
             SystemMessage(
