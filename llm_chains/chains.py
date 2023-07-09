@@ -19,7 +19,14 @@ from dotenv import load_dotenv
 from langchain import LLMChain
 from langchain.schema import Document
 from langchain.chains import SimpleSequentialChain
-
+from langchain.chains.openai_functions import (
+    create_openai_fn_chain, create_structured_output_chain
+)
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain.schema import HumanMessage, SystemMessage
+from langchain.llms import OpenAI
+from langchain.chat_models import ChatOpenAI
 # from heuristic_experience_orchestrator.prompt_template_modification import PromptTemplate
 # from langchain.retrievers import TimeWeightedVectorStoreRetriever
 import os
@@ -35,6 +42,9 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
 from langchain.utilities.zapier import ZapierNLAWrapper
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+from langchain.prompts import PromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate
+from typing import Optional
 
 # redis imports for cache
 import langchain
@@ -102,7 +112,7 @@ class Agent:
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo-0613"
         self.openai_model4 = "gpt-4-0613"
-        self.llm = OpenAI(
+        self.llm = ChatOpenAI(
             temperature=0.0,
             max_tokens=1200,
             openai_api_key=self.OPENAI_API_KEY,
@@ -397,34 +407,63 @@ class Agent:
         else:
             json_example= json_example
 
-        json_example = str(json_example).replace("{", "{{").replace("}", "}}")
-        template = Template(prompt_base)
-        output = template.render(prompt=prompt
-                                 , json_example=json_example)
-        complete_query = output
-        complete_query = PromptTemplate.from_template(complete_query)
+        # json_example = str(json_example).replace("{", "{{").replace("}", "}}")
+        # template = Template(prompt_base)
+        # output = template.render(prompt=prompt
+        #                          , json_example=json_example)
+        # complete_query = output
+        # complete_query = PromptTemplate.from_template(complete_query)
 
-        if model_speed == "fast":
-            output = self.replicate_llm(output)
-            return output
-        else:
-            chain = LLMChain(
-                llm=self.llm, prompt=complete_query, verbose=self.verbose
-            )
-            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-            #
-            # vectorstore: Pinecone = Pinecone.from_existing_index(
-            #     index_name=self.index,
-            #     embedding=OpenAIEmbeddings(),
-            #     namespace='RESULT'
-            # )
-            # from datetime import datetime
-            # retriever = vectorstore.as_retriever()
-            # retriever.add_documents([Document(page_content=chain_result,
-            #                                   metadata={'inserted_at': datetime.now(), "text": chain_result,
-            #                                             'user_id': self.user_id}, namespace="RESULT")])
-            logging.info("HERE IS THE CHAIN RESULT", chain_result)
-            return chain_result
+
+        # Define the response schema
+        class RecordRecipe(BaseModel):
+            """Record some identifying information about a pe."""
+            recipes: str = Field(..., description="Name of the recipe")
+            title: str = Field(..., description="Title of the recipe")
+            rating:  str = Field(None, description="Recipe rating")
+            prep_time:  str = Field(None, description="Time to prepare recipe")
+            cook_time:  str = Field(None, description="Time to cook recipe")
+            description:  str = Field(None, description="Description of recipe")
+            ingredients:  str = Field(None, description="All recipe ingredients")
+            instructions:  str = Field(None, description="All recipe instructions for making a recipe")
+
+        prompt_msgs = [
+            SystemMessage(
+                content="You are a world class algorithm for creating recipes"
+            ),
+            HumanMessage(content="Create a food recipe based on the following prompt:"),
+            HumanMessagePromptTemplate.from_template("{input}"),
+            HumanMessage(content="Tips: Make sure to answer in the correct format"),
+        ]
+        prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+        chain = create_structured_output_chain(RecordRecipe, self.llm35_fast, prompt_, verbose=True)
+        output = chain.run(input = prompt)
+        # output = json.dumps(output)
+        return output
+
+
+
+        # if model_speed == "fast":
+        #     output = self.replicate_llm(output)
+        #     return output
+        # else:
+        #     chain = LLMChain(
+        #         llm=self.llm, prompt=complete_query, verbose=self.verbose
+        #     )
+        #     chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+        #     #
+        #     # vectorstore: Pinecone = Pinecone.from_existing_index(
+        #     #     index_name=self.index,
+        #     #     embedding=OpenAIEmbeddings(),
+        #     #     namespace='RESULT'
+        #     # )
+        #     # from datetime import datetime
+        #     # retriever = vectorstore.as_retriever()
+        #     # retriever.add_documents([Document(page_content=chain_result,
+        #     #                                   metadata={'inserted_at': datetime.now(), "text": chain_result,
+        #     #                                             'user_id': self.user_id}, namespace="RESULT")])
+        #     logging.info("HERE IS THE CHAIN RESULT", chain_result)
+        #     return chain_result
 
     def extract_json(self, data):
         json_start = data.find("{")
@@ -911,11 +950,11 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     # agent.update_agent_summary(model_speed="slow")
-    #agent.recipe_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    agent.solution_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
-    agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal vietnamese cuisine", assistant_category="food", model_speed="slow")
+    # agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal vietnamese cuisine", assistant_category="food", model_speed="slow")
 
     # print(result)
     # agent._test()
