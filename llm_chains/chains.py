@@ -392,7 +392,7 @@ class Agent:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def solution_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
+    async def solution_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
         """Generates a recipe solution in json"""
 
 
@@ -440,7 +440,7 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(RecordRecipe, self.llm35_fast, prompt_, verbose=True)
-        output = chain.run(input = prompt)
+        output = await chain.arun(input = prompt)
         # output = json.dumps(output)
         return output
 

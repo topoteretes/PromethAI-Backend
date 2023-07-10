@@ -192,8 +192,6 @@ def create_endpoint_with_resources(category: str, solution_type: str, prompt: st
             json_payload["prompt"]
         )
         logging.info("HERE IS THE CHAIN RESULT %s", output)
-
-
         return JSONResponse(content={"response": output})
 
 
@@ -274,7 +272,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         agent = Agent()
         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
         # method_to_call = getattr(agent, f"{solution_type}_generation")
-        output = agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+        output = await agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
         output = output.replace("'", '"')
         return JSONResponse(content={"response": json.loads(output)})
 
@@ -293,10 +291,9 @@ for role in ['assistant', 'chatbot']:
                 create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
     # If the role is 'chatbot'
     elif role == 'chatbot':
-        pass
         # Iterate through the categories and resources
-        # for category in data[role]['categories']:
-        #         create_endpoint_with_resources(category['name'])
+        for category in data[role]['categories']:
+            create_endpoint_with_resources(category['name'], solution_type="", prompt="", json_example="")
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
@@ -360,7 +357,7 @@ async def recipe_request(request_data: Payload) -> dict:
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
-    output = agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
+    output = await agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
     output = str(output).replace("'", '"')
     return JSONResponse(content={"response": json.loads(output)})
 
