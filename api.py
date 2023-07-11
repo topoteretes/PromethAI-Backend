@@ -110,7 +110,7 @@ async def test(request_data: Payload) -> dict:
         return JSONResponse(content={"response": "Test"}, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-@app.post("/clear-cache", response_model=dict)
+@app.post("/clear-cache", response_model=dict,dependencies=[Depends(auth)])
 async def clear_cache(request_data: Payload) -> dict:
     """
     Endpoint to clear the cache.
@@ -130,7 +130,7 @@ async def clear_cache(request_data: Payload) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/correct-prompt-grammar", response_model=dict)
+@app.post("/correct-prompt-grammar", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -141,7 +141,7 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 
-@app.post("/action-add-zapier-calendar-action", response_model=dict)
+@app.post("/action-add-zapier-calendar-action", response_model=dict,dependencies=[Depends(auth)])
 async def action_add_zapier_calendar_action(
     request: Request, request_data: Payload
 ) -> dict:
@@ -162,7 +162,7 @@ async def action_add_zapier_calendar_action(
     return JSONResponse(content={"response": outcome})
 
 
-@app.post("/prompt-to-choose-meal-tree", response_model=dict)
+@app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -182,7 +182,7 @@ def create_endpoint_with_resources(category: str, solution_type: str, prompt: st
     class Payload(BaseModel):
         payload: Dict[str, Any]
 
-    @app.post(f"/chatbot/{category}", response_model=dict)
+    @app.post(f"/chatbot/{category}", response_model=dict,dependencies=[Depends(auth)])
     async def prompt_to_choose_tree(request_data: Payload) -> dict:
         json_payload = request_data.payload
         from bots.bot_extension import AppAgent
@@ -203,7 +203,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
     class Payload(BaseModel):
         payload: Dict[str, Any]
 
-    @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict)
+    @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict,dependencies=[Depends(auth)])
     async def prompt_to_choose_tree(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -221,7 +221,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         return JSONResponse(content={"response": json.loads(result)})
 
     #this doesn't work
-    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict)
+    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict,dependencies=[Depends(auth)])
     async def prompt_to_decompose_categories(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -233,7 +233,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         )
         return JSONResponse(content={"response": output})
 
-    @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict)
+    @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
     async def update_agent_summary(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -244,7 +244,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
         return {"response": output}
 
-    @app.post(f"/{category}/prompt-to-update-tree", response_model=dict)
+    @app.post(f"/{category}/prompt-to-update-tree", response_model=dict,dependencies=[Depends(auth)])
     async def prompt_to_update_tree(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -259,7 +259,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
         print("HERE IS THE OUTPUT", output)
         return JSONResponse(content={"response": output})
 
-    @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict)
+    @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
     async def fetch_user_summary(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -268,7 +268,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
         return {"response": output}
 
-    @app.post(f"/{category}/request/{solution_type}", response_model=dict)
+    @app.post(f"/{category}/request/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
     async def solution_request(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -297,7 +297,7 @@ for role in ['assistant', 'chatbot']:
         # Iterate through the categories and resources
         # for category in data[role]['categories']:
         #         create_endpoint_with_resources(category['name'])
-@app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
+@app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -311,7 +311,7 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
     return JSONResponse(content={"response": output})
 
 
-@app.post("/correct-prompt-grammar", response_model=dict)
+@app.post("/correct-prompt-grammar", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -322,7 +322,7 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 
-@app.post("/prompt-to-update-meal-tree", response_model=dict)
+@app.post("/prompt-to-update-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -337,7 +337,7 @@ async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
     return JSONResponse(content={"response": output})
 
 
-@app.post("/fetch-user-summary", response_model=dict)
+@app.post("/fetch-user-summary", response_model=dict,dependencies=[Depends(auth)])
 async def fetch_user_summary(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -347,7 +347,7 @@ async def fetch_user_summary(request_data: Payload) -> dict:
     return JSONResponse(content={"response": output})
 
 
-@app.post("/recipe-request", response_model=dict)
+@app.post("/recipe-request", response_model=dict,dependencies=[Depends(auth)])
 async def recipe_request(request_data: Payload) -> dict:
     if CANNED_RESPONSES:
         with open("fixtures/recipe_response.json", "r") as f:
@@ -385,7 +385,7 @@ async def recipe_request(request_data: Payload) -> dict:
 #     return JSONResponse(content={"response": {"url": output}})
 
 
-@app.post("/voice-input", response_model=dict)
+@app.post("/voice-input", response_model=dict,dependencies=[Depends(auth)])
 async def voice_input(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
