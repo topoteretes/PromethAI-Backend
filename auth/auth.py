@@ -17,7 +17,7 @@ load_dotenv()  # Automatically load environment variables from a '.env' file.
 # )
 # Construct the Cognito User Pool URL using the correct syntax
 region = "eu-west-1"
-user_pool_id = "eu-west-1_3VUqKzMgj"
+user_pool_id = "eu-west-1_viUyNCqKp"
 cognito_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
 
 # Fetch the JWKS using the updated URL
