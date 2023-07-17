@@ -1,0 +1,259 @@
+Resources:
+  ChromaInstance:
+    Type: 'AWS::AccessAnalyzer::Analyzer'
+    Properties:
+      ImageId: !FindInMap
+        - Region2AMI
+        - !Ref 'AWS::Region'
+        - AMI
+      InstanceType: "t3.small"
+      UserData: !Base64
+        'Fn::Join':
+          - ''
+          - - |
+              Content-Type: multipart/mixed; boundary="//"
+            - |
+              MIME-Version: 1.0
+            - |+
+
+            - |
+              --//
+            - |
+              Content-Type: text/cloud-config; charset="us-ascii"
+            - |
+              MIME-Version: 1.0
+            - |
+              Content-Transfer-Encoding: 7bit
+            - |
+              Content-Disposition: attachment; filename="cloud-config.txt"
+            - |+
+
+            - |+
+
+            - |
+              #cloud-config
+            - |
+              cloud_final_modules:
+            - |
+              - [scripts-user, always]
+            - |+
+
+            - |+
+
+            - |
+              --//
+            - |
+              Content-Type: text/x-shellscript; charset="us-ascii"
+            - |
+              MIME-Version: 1.0
+            - |
+              Content-Transfer-Encoding: 7bit
+            - |
+              Content-Disposition: attachment; filename="userdata.txt"
+            - |+
+
+            - |+
+
+            - |
+              #!/bin/bash
+            - |
+              amazon-linux-extras install docker
+            - |
+              usermod -a -G docker ec2-user
+            - >
+              curl -L
+              https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname
+              -s)-$(uname -m) -o /usr/local/bin/docker-compose
+            - |
+              chmod +x /usr/local/bin/docker-compose
+            - |
+              ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+            - |
+              systemctl enable docker
+            - |
+              systemctl start docker
+            - |+
+
+            - |
+              cat << EOF > /home/ec2-user/docker-compose.yml
+            - |
+              version: '3.9'
+            - |+
+
+            - |
+              networks:
+            - |2
+                net:
+            - |2
+                  driver: bridge
+            - |+
+
+            - |
+              services:
+            - |2
+                server:
+            - !Sub |2
+                  image: ghcr.io/chroma-core/chroma:${ChromaVersion}
+            - |2
+                  volumes:
+            - |2
+                    - index_data:/index_data
+            - |2
+                  environment:
+            - |2
+                    - CHROMA_DB_IMPL=clickhouse
+            - |2
+                    - CLICKHOUSE_HOST=clickhouse
+            - |2
+                    - CLICKHOUSE_PORT=8123
+            - |2
+                  ports:
+            - |2
+                    - 8000:8000
+            - |2
+                  depends_on:
+            - |2
+                    - clickhouse
+            - |2
+                  networks:
+            - |2
+                    - net
+            - |+
+
+            - |2
+                clickhouse:
+            - |2
+                  image: clickhouse/clickhouse-server:22.9-alpine
+            - |2
+                  environment:
+            - |2
+                    - ALLOW_EMPTY_PASSWORD=yes
+            - |2
+                    - CLICKHOUSE_TCP_PORT=9000
+            - |2
+                    - CLICKHOUSE_HTTP_PORT=8123
+            - |2
+                  ports:
+            - |2
+                    - '8123:8123'
+            - |2
+                    - '9000:9000'
+            - |2
+                  volumes:
+            - |2
+                    - clickhouse_data:/bitnami/clickhouse
+            - |2
+                    - backups:/backups
+            - |2
+                    - ./config/backup_disk.xml:/etc/clickhouse-server/config.d/backup_disk.xml
+            - |2
+                    - ./config/chroma_users.xml:/etc/clickhouse-server/users.d/chroma.xml
+            - |2
+                  networks:
+            - |2
+                    - net
+            - |+
+
+            - |
+              volumes:
+            - |2
+                clickhouse_data:
+            - |2
+                  driver: local
+            - |2
+                index_data:
+            - |2
+                  driver: local
+            - |2
+                backups:
+            - |2
+                  driver: local
+            - |+
+
+            - |
+              EOF
+            - |+
+
+            - |
+              mkdir /home/ec2-user/config
+            - |+
+
+            - |
+              cat << EOF > /home/ec2-user/config/backup_disk.xml
+            - |
+              <clickhouse>
+            - |2
+                  <storage_configuration>
+            - |2
+                      <disks>
+            - |2
+                          <backups>
+            - |2
+                              <type>local</type>
+            - |2
+                              <path>/etc/clickhouse-server/</path>
+            - |2
+                          </backups>
+            - |2
+                      </disks>
+            - |2
+                  </storage_configuration>
+            - |2
+                  <backups>
+            - |2
+                      <allowed_disk>backups</allowed_disk>
+            - |2
+                      <allowed_path>/etc/clickhouse-server/</allowed_path>
+            - |2
+                  </backups>
+            - |
+              </clickhouse>
+            - |+
+
+            - |
+              EOF
+            - |+
+
+            - |
+              cat << EOF > /home/ec2-user/config/chroma_users.xml
+            - |
+              <clickhouse>
+            - |2
+                  <profiles>
+            - |2
+                    <default>
+            - |2
+                          <allow_experimental_lightweight_delete>1</allow_experimental_lightweight_delete>
+            - |2
+                          <mutations_sync>1</mutations_sync>
+            - |2
+                      </default>
+            - |2
+                  </profiles>
+            - |
+              </clickhouse>
+            - |+
+
+            - |
+              EOF
+            - |+
+
+            - |
+              docker-compose -f /home/ec2-user/docker-compose.yml up -d
+            - |+
+
+            - |
+              --//--
+      SecurityGroupIds:
+        - !Ref ChromaInstanceSecurityGroup
+      KeyName: !If
+        - HasKeyName
+        - !Ref KeyName
+        - !Ref 'AWS::NoValue'
+      BlockDeviceMappings:
+        - DeviceName: !FindInMap
+            - Region2AMI
+            - !Ref 'AWS::Region'
+            - RootDeviceName
+          Ebs:
+            VolumeSize: 24
