@@ -723,7 +723,7 @@ class Agent:
         elapsed_time = end_time - start_time
         # Print the elapsed time
         print(f"Elapsed time: {elapsed_time} seconds")
-        object_json = my_object.json()
+        object_json = my_object.dict()
         return object_json
 
     async def prompt_decompose_to_tree_categories(
