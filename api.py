@@ -308,19 +308,19 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 with open('assistant_templates.yaml', 'r') as file:
     data = yaml.safe_load(file)
 
-# Create an endpoint for each category and solution type
-for role in ['assistant', 'chatbot']:
-    # If the role is 'assistant'
-    if role == 'assistant':
-        # Iterate through the categories and solution_types
-        for category in data[role]['categories']:
-            for solution_type in category['solution_types']:
-                create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
-    # If the role is 'chatbot'
-    elif role == 'chatbot':
-        # Iterate through the categories and resources
-        for category in data[role]['categories']:
-            create_endpoint_with_resources(category['name'], solution_type="", prompt="", json_example="")
+# # Create an endpoint for each category and solution type
+# for role in ['assistant', 'chatbot']:
+#     # If the role is 'assistant'
+#     if role == 'assistant':
+#         # Iterate through the categories and solution_types
+#         for category in data[role]['categories']:
+#             for solution_type in category['solution_types']:
+#                 create_endpoint(category['name'], solution_type['name'], solution_type['prompt'], json.loads(solution_type['json_example']))
+#     # If the role is 'chatbot'
+#     elif role == 'chatbot':
+#         # Iterate through the categories and resources
+#         for category in data[role]['categories']:
+#             create_endpoint_with_resources(category['name'], solution_type="", prompt="", json_example="")
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict)
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
