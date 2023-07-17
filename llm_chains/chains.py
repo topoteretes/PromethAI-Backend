@@ -592,7 +592,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         self.init_pinecone(index_name=self.index)
@@ -665,7 +665,7 @@ class Agent:
         import time
         start_time = time.time()
 
-      agent_summary = agent_summary.split(".", 1)[0]
+        agent_summary = agent_summary.split(".", 1)[0]
         template = Template(prompt_template)
         output = template.render(
             prompt_str=prompt,
@@ -685,27 +685,27 @@ class Agent:
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=False)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
             vectorstore: Pinecone = Pinecone.from_existing_index(
-                        index_name=self.index,
-                        embedding=OpenAIEmbeddings(),
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                namespace="GOAL",
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            logging.info(str(chain_result))
+            print("HERE IS THE CHAIN RESULT", chain_result)
+            retriever.add_documents(
+                [
+                    Document(
+                        page_content=chain_result,
+                        metadata={
+                            "inserted_at": datetime.now(),
+                            "text": chain_result,
+                            "user_id": self.user_id,
+                        },
                         namespace="GOAL",
                     )
-                    from datetime import datetime
-                    retriever = vectorstore.as_retriever()
-                    logging.info(str(chain_result))
-                    print("HERE IS THE CHAIN RESULT", chain_result)
-                    retriever.add_documents(
-                        [
-                            Document(
-                                page_content=chain_result,
-                                metadata={
-                                    "inserted_at": datetime.now(),
-                                    "text": chain_result,
-                                    "user_id": self.user_id,
-                                },
-                                namespace="GOAL",
-                            )
-                        ]
-                    )
+                ]
+            )
             return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(

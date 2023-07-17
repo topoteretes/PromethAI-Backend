@@ -196,7 +196,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.prompt_to_choose_tree(
+    output = agent.prompt_to_choose_tree(
         json_payload["prompt"],
         model_speed=json_payload["model_speed"],
         assistant_category="food",
@@ -325,7 +325,6 @@ with open('assistant_templates.yaml', 'r') as file:
 #         # for category in data[role]['categories']:
 #         #         create_endpoint_with_resources(category['name'])
 @app.post("/prompt-to-decompose-meal-tree-categories", response_model=dict,dependencies=[Depends(auth)])
-
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
