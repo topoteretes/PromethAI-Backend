@@ -705,7 +705,7 @@ class Agent:
                     )
                 ]
             )
-
+            print
 
             return chain_result.replace("'", '"')
 

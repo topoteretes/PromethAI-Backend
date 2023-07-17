@@ -12,7 +12,6 @@ from fastapi import Request
 import yaml
 from fastapi import HTTPException
 CANNED_RESPONSES = False
-from bots.bot_extension import  AppAgent
 
 # Set up logging
 logging.basicConfig(
@@ -111,32 +110,6 @@ async def test(request_data: Payload) -> dict:
         return JSONResponse(content={"response": "Test"}, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
-@app.post("/testbot", response_model=Dict[str, Any])
-async def test(request_data: Payload) -> Dict[str, Any]:
-    """
-    Endpoint to clear the cache.
-
-    Parameters:
-    request_data (Payload): The request data containing the user and session IDs.
-
-    Returns:
-    dict: A dictionary with a message indicating the cache was cleared.
-    """
-    json_payload = request_data.payload
-
-    try:
-        # Instantiate AppAgent and call manage_resources
-        app_agent = AppAgent(user_id=json_payload["user_id"])
-        app_agent.manage_resources("add", "web_page", "https://nav.al/agi")
-        return JSONResponse(content={"response": "Test"}, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/clear-cache", response_model=dict)
 async def clear_cache(request_data: Payload) -> dict:
     """
