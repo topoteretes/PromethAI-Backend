@@ -381,7 +381,7 @@ class Agent:
     def prompt_correction(self, prompt_source: str, model_speed: str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Dishes should not be a cuisine """
+        prompt = """ Instruction is: Grammatically and logically correct sentence: {{prompt_source}}. Instruction is: Return only the corrected sentence, no abbreviations, using the same words if it is logical. Instruction is: Dishes should not be a cuisine. Don't write the instruction """
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
