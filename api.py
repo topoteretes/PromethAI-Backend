@@ -310,7 +310,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 with open('assistant_templates.yaml', 'r') as file:
     data = yaml.safe_load(file)
 
-# # Create an endpoint for each category and solution type
+
 # for role in ['assistant', 'chatbot']:
 #     # If the role is 'assistant'
 #     if role == 'assistant':
