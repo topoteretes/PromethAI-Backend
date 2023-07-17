@@ -3,6 +3,7 @@ from langchain.indexes import VectorstoreIndexCreator
 from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
 from langchain import PromptTemplate
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
+from pydantic import BaseModel, parse_obj_as
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict
@@ -591,7 +592,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         self.init_pinecone(index_name=self.index)
@@ -640,7 +641,7 @@ class Agent:
         # print("TEST OUTPUT", test_output)
 
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        prompt_template = """Known user summary: '{{ user_summary }} '. 
+        prompt_template = """Known user summary: '{{ user_summary }} '.
         Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
         Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
         Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
@@ -659,10 +660,13 @@ class Agent:
             ):
                 agent_summary = "None."
         except:
-            pass
-        agent_summary = agent_summary.split(".", 1)[0]
-        template = Template(prompt_template)
+            agent_summary = "None."
 
+        import time
+        start_time = time.time()
+
+      agent_summary = agent_summary.split(".", 1)[0]
+        template = Template(prompt_template)
         output = template.render(
             prompt_str=prompt,
             json_example=json_example,
@@ -673,7 +677,6 @@ class Agent:
         complete_query = output
         print("HERE IS THE COMPLETE QUERY", complete_query)
         complete_query = PromptTemplate.from_template(complete_query)
-
         if model_speed == "fast":
             output = self.replicate_llm(output)
             json_data = json.dumps(output)
@@ -681,32 +684,28 @@ class Agent:
         else:
             chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=False)
             chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-
             vectorstore: Pinecone = Pinecone.from_existing_index(
-                index_name=self.index,
-                embedding=OpenAIEmbeddings(),
-                namespace="GOAL",
-            )
-            from datetime import datetime
-
-            retriever = vectorstore.as_retriever()
-            logging.info(str(chain_result))
-            print("HERE IS THE CHAIN RESULT", chain_result)
-            retriever.add_documents(
-                [
-                    Document(
-                        page_content=chain_result,
-                        metadata={
-                            "inserted_at": datetime.now(),
-                            "text": chain_result,
-                            "user_id": self.user_id,
-                        },
+                        index_name=self.index,
+                        embedding=OpenAIEmbeddings(),
                         namespace="GOAL",
                     )
-                ]
-            )
-            print
-
+                    from datetime import datetime
+                    retriever = vectorstore.as_retriever()
+                    logging.info(str(chain_result))
+                    print("HERE IS THE CHAIN RESULT", chain_result)
+                    retriever.add_documents(
+                        [
+                            Document(
+                                page_content=chain_result,
+                                metadata={
+                                    "inserted_at": datetime.now(),
+                                    "text": chain_result,
+                                    "user_id": self.user_id,
+                                },
+                                namespace="GOAL",
+                            )
+                        ]
+                    )
             return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(
@@ -953,11 +952,21 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     # agent.update_agent_summary(model_speed="slow")
-    agent.solution_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    #agent.solution_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
-    # agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal vietnamese cuisine", assistant_category="food", model_speed="slow")
+    import asyncio
+
+
+    async def main():
+        out = await agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal Vietnamese cuisine",
+                                                assistant_category="food", model_speed="slow")
+        # Rest of your code here
+
+
+    # Run the async function
+    asyncio.run(main())
 
     # print(result)
     # agent._test()

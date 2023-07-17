@@ -4,6 +4,7 @@ on:
         - main
     paths-ignore:
       - '**.md'
+      - 'examples/**'
 name: Publishing promethai-backend Docker image to prd ECR
 
 env:
