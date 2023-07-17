@@ -111,7 +111,7 @@ class Agent:
             :-3
         ]  #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "gpt-3.5-turbo-0613"
+        self.openai_model35 = "	gpt-3.5-turbo"
         self.openai_model4 = "gpt-4-0613"
         self.llm = ChatOpenAI(
             temperature=0.0,
@@ -595,30 +595,30 @@ class Agent:
     async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        self.init_pinecone(index_name=self.index)
-        vectorstore: Pinecone = Pinecone.from_existing_index(
-            index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
-        )
-        retriever = vectorstore.as_retriever()
-
-        template = """
-        {summaries}
-        {question}
-        """
-
-        chain = RetrievalQAWithSourcesChain.from_chain_type(
-            llm=OpenAI(temperature=0),
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs={
-                "prompt": PromptTemplate(
-                    template=template,
-                    input_variables=["summaries", "question"],
-                ),
-            },
-        )
-        test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
-        print("TEST OUTPUT", test_output['answer'])
+        # self.init_pinecone(index_name=self.index)
+        # vectorstore: Pinecone = Pinecone.from_existing_index(
+        #     index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
+        # )
+        # retriever = vectorstore.as_retriever()
+        #
+        # template = """
+        # {summaries}
+        # {question}
+        # """
+        #
+        # chain = RetrievalQAWithSourcesChain.from_chain_type(
+        #     llm=OpenAI(temperature=0),
+        #     chain_type="stuff",
+        #     retriever=retriever,
+        #     chain_type_kwargs={
+        #         "prompt": PromptTemplate(
+        #             template=template,
+        #             input_variables=["summaries", "question"],
+        #         ),
+        #     },
+        # )
+        # test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
+        # print("TEST OUTPUT", test_output['answer'])
 
         # prompt_template = """Retireve and summarize releavant information from the following document
         #
@@ -676,17 +676,17 @@ class Agent:
 
         class Root(BaseModel):
             response: Response = Field(..., description="Response data")
-        system_context =  test_output['answer']
+        # system_context =  test_output['answer']
 
         system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. Do not include budget, meal type, intake, personality, user summary"
-        guidance_query = f"Your general knowledge that might be useful is: {system_context}.  Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories and one option. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
+        guidance_query = f" Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories and one option. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
             ),
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format. Your knowledge about the user is {agent_summary}."),
+            HumanMessage(content=f"Tips: Make sure to answer in the correct format. "),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Root, self.llm35_fast, prompt_, verbose=True)
@@ -724,7 +724,7 @@ class Agent:
         # Print the elapsed time
         print(f"Elapsed time: {elapsed_time} seconds")
 
-        return output
+        return my_object.dict()
 
     async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str
