@@ -206,7 +206,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
     # )
     # return JSONResponse(content={"response": json.loads(result)})
-    return JSONResponse(content={output})
+    return JSONResponse(content=output)
 def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
     class Payload(BaseModel):
         payload: Dict[str, Any]
