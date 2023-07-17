@@ -12,7 +12,6 @@ from fastapi import Request
 import yaml
 from fastapi import HTTPException
 CANNED_RESPONSES = False
-from bots.bot_extension import  AppAgent
 
 # Set up logging
 logging.basicConfig(
@@ -116,6 +115,7 @@ async def test(request_data: Payload) -> dict:
 
 
 
+
 @app.post("/testbot", response_model=Dict[str, Any])
 async def test(request_data: Payload) -> Dict[str, Any]:
     """
@@ -202,11 +202,11 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
         assistant_category="food",
     )
     logging.info("HERE IS THE CHAIN RESULT %s", output)
-    # result = json.dumps(
-    #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
-    # )
-    # return JSONResponse(content={"response": json.loads(result)})
-    return JSONResponse(content=output)
+    result = json.dumps(
+        {"results": list(map(splitter, output.replace('"', "").split(";")))}
+    )
+    return JSONResponse(content={"response": json.loads(result)})
+    #return JSONResponse(content=output)
 def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
     class Payload(BaseModel):
         payload: Dict[str, Any]

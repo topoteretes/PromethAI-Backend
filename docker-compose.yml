@@ -7,7 +7,6 @@ services:
     depends_on:
       - db_agi
       - redis
-
     build:
       context: ./
     volumes:
@@ -44,6 +43,3 @@ services:
 networks:
   agi_backend:
     name: agi_backend
-    external: true
-
-

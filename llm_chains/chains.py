@@ -640,11 +640,11 @@ class Agent:
         #
         # print("TEST OUTPUT", test_output)
 
-        # json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        # prompt_template = """Known user summary: '{{ user_summary }} '.
-        # Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        # Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
-        # Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        prompt_template = """Known user summary: '{{ user_summary }} '.
+        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
+        Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -665,66 +665,48 @@ class Agent:
         import time
         start_time = time.time()
 
-
-        class Option(BaseModel):
-            category: str = Field(..., description="Category of the option")
-            options: Optional[List[str]] = Field(None, description="Options")
-            preference: Optional[List[str]] = Field(None, description="Preference")
-
-        class Response(BaseModel):
-            results: Optional[List[Option]] = Field(None, description="List of options")
-
-        class Root(BaseModel):
-            response: Response = Field(..., description="Response data")
-        system_context =  test_output['answer']
-
-        system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. Do not include budget, meal type, intake, personality, user summary"
-        guidance_query = f"Your general knowledge that might be useful is: {system_context}.  Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories and one option. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
-        prompt_msgs = [
-            SystemMessage(
-                content=system_message
-            ),
-            HumanMessage(content=guidance_query),
-            HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format. Your knowledge about the user is {agent_summary}."),
-        ]
-        prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Root, self.llm35_fast, prompt_, verbose=True)
-        output = await chain.arun(input = prompt)
-
-        # Convert the dictionary to a Pydantic object
-        my_object = parse_obj_as(Root, output)
-        print("HERE IS THE OUTPUT", my_object.json())
-        vectorstore: Pinecone = Pinecone.from_existing_index(
-            index_name=self.index,
-            embedding=OpenAIEmbeddings(),
-            namespace="GOAL",
+      agent_summary = agent_summary.split(".", 1)[0]
+        template = Template(prompt_template)
+        output = template.render(
+            prompt_str=prompt,
+            json_example=json_example,
+            user_summary=agent_summary,
+            assistant_category=assistant_category,
+            nutritional_context=test_output['answer']
         )
-        from datetime import datetime
-
-        retriever = vectorstore.as_retriever()
-        logging.info(str(output))
-        print("HERE IS THE CHAIN RESULT", output)
-        retriever.add_documents(
-            [
-                Document(
-                    page_content=str(output),
-                    metadata={
-                        "inserted_at": datetime.now(),
-                        "text": str(output),
-                        "user_id": self.user_id,
-                    },
-                    namespace="GOAL",
-                )
-            ]
-        )
-        end_time = time.time()
-        # Calculate the elapsed time
-        elapsed_time = end_time - start_time
-        # Print the elapsed time
-        print(f"Elapsed time: {elapsed_time} seconds")
-        object_json = my_object.dict()
-        return object_json
+        complete_query = output
+        print("HERE IS THE COMPLETE QUERY", complete_query)
+        complete_query = PromptTemplate.from_template(complete_query)
+        if model_speed == "fast":
+            output = self.replicate_llm(output)
+            json_data = json.dumps(output)
+            return json_data
+        else:
+            chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=False)
+            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                        index_name=self.index,
+                        embedding=OpenAIEmbeddings(),
+                        namespace="GOAL",
+                    )
+                    from datetime import datetime
+                    retriever = vectorstore.as_retriever()
+                    logging.info(str(chain_result))
+                    print("HERE IS THE CHAIN RESULT", chain_result)
+                    retriever.add_documents(
+                        [
+                            Document(
+                                page_content=chain_result,
+                                metadata={
+                                    "inserted_at": datetime.now(),
+                                    "text": chain_result,
+                                    "user_id": self.user_id,
+                                },
+                                namespace="GOAL",
+                            )
+                        ]
+                    )
+            return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str
