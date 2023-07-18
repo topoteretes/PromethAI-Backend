@@ -445,7 +445,8 @@ class Agent:
         chain = create_structured_output_chain(RecordRecipe, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
         # output = json.dumps(output)
-        return output
+        my_object = parse_obj_as(RecordRecipe, output)
+        return my_object.dict()
 
 
 

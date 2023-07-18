@@ -396,8 +396,8 @@ async def recipe_request(request_data: Payload) -> dict:
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
     output = await agent.solution_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
-    output = str(output).replace("'", '"')
-    return JSONResponse(content={"response": json.loads(output)})
+
+    return JSONResponse(content={"response": output})
 
 
 # @app.post("/restaurant-request", response_model=dict)
