@@ -58,27 +58,27 @@ from redis import Redis
 from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
-
+#
 # langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
 # logging.info("Using redis cache")
+#
 
-
-if os.getenv("AWS_ENV", "") == "dev":
-    REDIS_HOST = os.getenv(
-        "REDIS_HOST",
-        "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-    )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-    logging.info("Using redis cache for DEV")
-elif os.getenv("AWS_ENV", "") == "prd":
-    REDIS_HOST = os.getenv(
-        "REDIS_HOST",
-        "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-    )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-    logging.info("Using redis cache for PRD")
-else:
-    pass
+# if os.getenv("AWS_ENV", "") == "dev":
+#     REDIS_HOST = os.getenv(
+#         "REDIS_HOST",
+#         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+#     )
+#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+#     logging.info("Using redis cache for DEV")
+# elif os.getenv("AWS_ENV", "") == "prd":
+#     REDIS_HOST = os.getenv(
+#         "REDIS_HOST",
+#         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+#     )
+#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+#     logging.info("Using redis cache for PRD")
+# else:
+#     pass
 
 
 
