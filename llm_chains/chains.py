@@ -63,20 +63,22 @@ from langchain import llm_cache
 # logging.info("Using redis cache")
 
 
-if os.getenv("STAGE", "") == "dev":
+if os.getenv("AWS_ENV", "") == "dev":
     REDIS_HOST = os.getenv(
         "REDIS_HOST",
         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
     )
     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
     logging.info("Using redis cache for DEV")
-else:
+elif os.getenv("AWS_ENV", "") == "prd":
     REDIS_HOST = os.getenv(
         "REDIS_HOST",
         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
     )
     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
     logging.info("Using redis cache for PRD")
+else:
+    pass
 
 
 

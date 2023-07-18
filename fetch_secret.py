@@ -5,7 +5,7 @@ from api import start_api_server
 # API_ENABLED = os.environ.get("API_ENABLED", "False").lower() == "true"
 import boto3
 
-environment = os.getenv("env", "dev")
+environment = os.getenv("AWS_ENV", "dev")
 
 
 
@@ -54,17 +54,10 @@ else:
     if secrets:
         print(secrets)
     load_dotenv()
-import requests
 
-# Fetch the task metadata endpoint from the ECS container environment variables
-metadata_endpoint = requests.get('http://169.254.170.2/v2/metadata').json()['TaskARN']
-
-# Extract the cluster and task ARN from the metadata endpoint
-cluster_arn = metadata_endpoint.split('/')[1]
-task_arn = metadata_endpoint.split('/')[3]
 
 # Check if "dev" is present in the task ARN
-if "dev" in task_arn:
+if "dev" in environment:
     # Fetch the secret
     secrets = fetch_secret(
         f"promethai-dev-backend-secretso-promethaijs-dotenv",
@@ -72,7 +65,7 @@ if "dev" in task_arn:
         ".env",
     )
     load_dotenv()
-elif "prd" in task_arn:
+elif "prd" in environment:
     # Fetch the secret
     secrets = fetch_secret(
         f"promethai-prd-backend-secretso-promethaijs-dotenv",
