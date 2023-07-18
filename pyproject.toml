@@ -8,7 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 #langchain = {git = "https://github.com/topoteretes/langchain.git" , tag = "v0.0.209"}
-langchain = "v0.0.233"
+langchain = "v0.0.229"
+
 nltk = "3.8.1"
 openai = "0.27.8"
 pinecone-client = "2.2.2"
@@ -32,7 +33,7 @@ google-search-results = "^2.4.2"
 spacy = "^3.5.3"
 python-jose = "^3.3.0"
 pypdf = "^3.12.0"
-chromadb = "^0.3.26"
+
 
 
 

@@ -592,7 +592,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         # self.init_pinecone(index_name=self.index)
@@ -640,11 +640,11 @@ class Agent:
         #
         # print("TEST OUTPUT", test_output)
 
-        # json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        # prompt_template = """Known user summary: '{{ user_summary }} '.
-        # Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        # Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
-        # Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        prompt_template = """Known user summary: '{{ user_summary }} '.
+        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
+        Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -664,7 +664,6 @@ class Agent:
 
         import time
         start_time = time.time()
-
 
         class Option(BaseModel):
             category: str = Field(..., description="Category of the option")
@@ -725,6 +724,7 @@ class Agent:
         print(f"Elapsed time: {elapsed_time} seconds")
 
         return my_object.dict()
+
 
     async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str
