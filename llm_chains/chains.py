@@ -668,15 +668,19 @@ class Agent:
         start_time = time.time()
 
         class Option(BaseModel):
-            category: str = Field(..., description="Category of the option")
-            options: Optional[List[str]] = Field(None, description="Options")
-            preference: Optional[List[str]] = Field(None, description="Preference")
+            category: str
+            options: List
+
+        class Result(BaseModel):
+            category: str
+            options: List[Option]
+            preference: Optional[List] = Field([], description="List of preferences, empty list if possible")
 
         class Response(BaseModel):
-            results: Optional[List[Option]] = Field(None, description="List of options")
+            results: List[Result]
 
-        class Root(BaseModel):
-            response: Response = Field(..., description="Response data")
+        class Main(BaseModel):
+            response: Response
         # system_context =  test_output['answer']
 
         system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. "
@@ -690,11 +694,11 @@ class Agent:
             HumanMessage(content=f"Tips: Make sure to answer in the correct format."),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Root, self.llm35, prompt_, verbose=True)
+        chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
 
         # Convert the dictionary to a Pydantic object
-        my_object = parse_obj_as(Root, output)
+        my_object = parse_obj_as(Main, output)
         print("HERE IS THE OUTPUT", my_object.json())
         vectorstore: Pinecone = Pinecone.from_existing_index(
             index_name=self.index,
