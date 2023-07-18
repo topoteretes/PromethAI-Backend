@@ -5,7 +5,10 @@ from api import start_api_server
 # API_ENABLED = os.environ.get("API_ENABLED", "False").lower() == "true"
 import boto3
 
-environment = os.getenv("ENVIRONMENT", "dev")
+environment = os.getenv("ENV", "dev")
+import logging
+
+logging.info(environment)
 
 
 def fetch_secret(secret_name, region_name, env_file_path):

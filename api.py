@@ -196,7 +196,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.prompt_to_choose_tree(
+    output = await agent.prompt_to_choose_tree(
         json_payload["prompt"],
         model_speed=json_payload["model_speed"],
         assistant_category="food",

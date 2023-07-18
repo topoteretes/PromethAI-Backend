@@ -63,21 +63,21 @@ from langchain import llm_cache
 # logging.info("Using redis cache")
 
 
-# if os.getenv("STAGE", "") == "dev":
-#     REDIS_HOST = os.getenv(
-#         "REDIS_HOST",
-#         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-#     )
-#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-#     logging.info("Using redis cache for DEV")
-# else:
-#     REDIS_HOST = os.getenv(
-#         "REDIS_HOST",
-#         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-#     )
-#     langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
-#     logging.info("Using redis cache for PRD")
-#
+if os.getenv("STAGE", "") == "dev":
+    REDIS_HOST = os.getenv(
+        "REDIS_HOST",
+        "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+    )
+    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+    logging.info("Using redis cache for DEV")
+else:
+    REDIS_HOST = os.getenv(
+        "REDIS_HOST",
+        "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
+    )
+    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+    logging.info("Using redis cache for PRD")
+
 
 
 class Agent:
@@ -111,7 +111,7 @@ class Agent:
             :-3
         ]  #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "	gpt-3.5-turbo"
+        self.openai_model35 = "gpt-3.5-turbo-0613"
         self.openai_model4 = "gpt-4-0613"
         self.llm = ChatOpenAI(
             temperature=0.0,
@@ -121,7 +121,7 @@ class Agent:
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
-            max_tokens=1050,
+            max_tokens=900,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
         )
@@ -592,7 +592,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         # self.init_pinecone(index_name=self.index)
@@ -677,15 +677,15 @@ class Agent:
             response: Response = Field(..., description="Response data")
         # system_context =  test_output['answer']
 
-        system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. Do not include budget, meal type, intake, personality, user summary"
-        guidance_query = f" Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories and one option. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
+        system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. "
+        guidance_query = f"Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
             ),
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format. "),
+            HumanMessage(content=f"Tips: Make sure to answer in the correct format."),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Root, self.llm35_fast, prompt_, verbose=True)
