@@ -442,7 +442,7 @@ class Agent:
             HumanMessage(content="Tips: Make sure to answer in the correct format"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(RecordRecipe, self.llm, prompt_, verbose=True)
+        chain = create_structured_output_chain(RecordRecipe, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
         # output = json.dumps(output)
         return output
@@ -690,7 +690,7 @@ class Agent:
             HumanMessage(content=f"Tips: Make sure to answer in the correct format."),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Root, self.llm, prompt_, verbose=True)
+        chain = create_structured_output_chain(Root, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
 
         # Convert the dictionary to a Pydantic object
