@@ -58,10 +58,10 @@ from redis import Redis
 from langchain.cache import RedisCache
 import os
 from langchain import llm_cache
-#
-# langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
-# logging.info("Using redis cache")
-#
+
+langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
+logging.info("Using redis cache")
+
 
 # if os.getenv("AWS_ENV", "") == "dev":
 #     REDIS_HOST = os.getenv(
@@ -115,11 +115,11 @@ class Agent:
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo-0613"
         self.openai_model4 = "gpt-4-0613"
-        self.llm = ChatOpenAI(
+        self.llm = OpenAI(
             temperature=0.0,
-            max_tokens=1200,
+            max_tokens=1400,
             openai_api_key=self.OPENAI_API_KEY,
-            model_name=self.openai_model4,
+            model_name=self.openai_model35,
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
@@ -138,6 +138,7 @@ class Agent:
             max_tokens=1500,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
+            cache=False,
         )
         # self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
         self.replicate_llm = Replicate(
@@ -684,15 +685,17 @@ class Agent:
             response: Response
         # system_context =  test_output['answer']
 
-        system_message = f"You are a world class algorithm for statements into decision trees related to { assistant_category }. "
-        guidance_query = f"Decompose statement into decision tree that take into account user summary information and related to { assistant_category }.Result should have at minimum three categories. Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"
+        system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on { assistant_category }. "
+        guidance_query = f"Decompose statement into decision tree related to { assistant_category }. "
         prompt_msgs = [
             SystemMessage(
                 content=system_message
             ),
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format."),
+            HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
+            HumanMessage(content=f"Result should have three categories and one option each"),
+            HumanMessage(content=f"Tips: Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
@@ -789,7 +792,7 @@ class Agent:
         )
         complete_query = PromptTemplate.from_template(optimization_output)
         # prompt_template = PromptTemplate(input_variables=["query"], template=optimization_output)
-        review_chain = LLMChain(llm=self.llm35, prompt=complete_query)
+        review_chain = LLMChain(llm=self.llm, prompt=complete_query)
         review_chain_result = review_chain.run(
             prompt=complete_query, name=self.user_id
         ).strip()
