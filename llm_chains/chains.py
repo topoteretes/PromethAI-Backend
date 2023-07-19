@@ -670,13 +670,20 @@ class Agent:
         start_time = time.time()
 
         class Option(BaseModel):
-            category: str
+            category: str  = Field(..., alias="category")
             options: List
 
         class Result(BaseModel):
             category: str
             options: List[Option]
-            preference: Optional[List] = Field([], description="List of preferences, empty list if possible")
+            preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
+
+        from pydantic import  validator
+        @validator("preference", pre=True)
+        def set_preference_value(cls, preference, values):
+            if not preference and values.get("options"):
+                preference = [values["options"][0].category]
+            return preference
 
         class Response(BaseModel):
             results: List[Result]
@@ -703,6 +710,8 @@ class Agent:
 
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
+        from pydantic import validate_model
+        # my_object = Main(my_object.json())
         print("HERE IS THE OUTPUT", my_object.json())
         vectorstore: Pinecone = Pinecone.from_existing_index(
             index_name=self.index,
@@ -733,7 +742,17 @@ class Agent:
         # Print the elapsed time
         print(f"Elapsed time: {elapsed_time} seconds")
 
-        return my_object.dict()
+        data =my_object.dict()
+
+        for result in data["response"]["results"]:
+            # Check if preference is empty and options exist
+            if not result["preference"] and result["options"]:
+                # Get the second nested category value
+                second_category = result["options"][0]["category"]
+                # Assign it to the preference
+                result["preference"] = [second_category]
+
+        return data
 
 
     async def prompt_decompose_to_tree_categories(
