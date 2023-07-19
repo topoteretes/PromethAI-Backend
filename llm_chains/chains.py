@@ -677,13 +677,13 @@ class Agent:
             category: str
             options: List[Option]
             preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
-
-        from pydantic import  validator
-        @validator("preference", pre=True)
-        def set_preference_value(cls, preference, values):
-            if not preference and values.get("options"):
-                preference = [values["options"][0].category]
-            return preference
+        #
+        # from pydantic import  validator
+        # @validator("preference", pre=True)
+        # def set_preference_value(cls, preference, values):
+        #     if not preference and values.get("options"):
+        #         preference = [values["options"][0].category]
+        #     return preference
 
         class Response(BaseModel):
             results: List[Result]
