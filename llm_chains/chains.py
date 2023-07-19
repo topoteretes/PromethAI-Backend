@@ -117,7 +117,7 @@ class Agent:
         self.openai_model4 = "gpt-4-0613"
         self.llm = OpenAI(
             temperature=0.0,
-            max_tokens=1400,
+            max_tokens=1500,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
         )
@@ -129,10 +129,10 @@ class Agent:
         )
         self.llm_fast = OpenAI(
             temperature=0.0,
-            max_tokens=1000,
+            max_tokens=1400,
             openai_api_key=self.OPENAI_API_KEY,
             model_name="gpt-4-0613",
-            cache=True,
+            cache=False,
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
@@ -510,6 +510,9 @@ class Agent:
             exclusion_categories=list_as_string,
         )
         complete_query = PromptTemplate.from_template(output)
+
+
+
         chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
         json_o = json.loads(chain_result)
