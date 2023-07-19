@@ -123,9 +123,10 @@ class Agent:
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
-            max_tokens=900,
+            max_tokens=450,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
+            cache=False,
         )
         self.llm_fast = OpenAI(
             temperature=0.0,
@@ -136,7 +137,7 @@ class Agent:
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
-            max_tokens=1500,
+            max_tokens=1200,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
             cache=False,
@@ -445,7 +446,10 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(RecordRecipe, self.llm35, prompt_, verbose=True)
-        output = await chain.arun(input = prompt)
+        from langchain.callbacks import get_openai_callback
+        with get_openai_callback() as cb:
+            output = await chain.arun(input = prompt)
+            print(cb)
         # output = json.dumps(output)
         my_object = parse_obj_as(RecordRecipe, output)
         return my_object.dict()
@@ -705,8 +709,10 @@ class Agent:
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = await chain.arun(input = prompt)
+        chain = create_structured_output_chain(Main, self.llm35_fast, prompt_, verbose=True)
+        with get_openai_callback() as cb:
+            output = await chain.arun(input = prompt)
+            print(cb)
 
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
