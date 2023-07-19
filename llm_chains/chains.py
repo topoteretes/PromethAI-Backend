@@ -127,11 +127,12 @@ class Agent:
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
         )
-        self.llm_fast = ChatOpenAI(
+        self.llm_fast = OpenAI(
             temperature=0.0,
-            max_tokens=800,
+            max_tokens=1000,
             openai_api_key=self.OPENAI_API_KEY,
             model_name="gpt-4-0613",
+            cache=True,
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
@@ -596,33 +597,194 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    #async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+        # """Serves to generate agent goals and subgoals based on a prompt"""
+        #
+        # # self.init_pinecone(index_name=self.index)
+        # # vectorstore: Pinecone = Pinecone.from_existing_index(
+        # #     index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
+        # # )
+        # # retriever = vectorstore.as_retriever()
+        # #
+        # # template = """
+        # # {summaries}
+        # # {question}
+        # # """
+        # #
+        # # chain = RetrievalQAWithSourcesChain.from_chain_type(
+        # #     llm=OpenAI(temperature=0),
+        # #     chain_type="stuff",
+        # #     retriever=retriever,
+        # #     chain_type_kwargs={
+        # #         "prompt": PromptTemplate(
+        # #             template=template,
+        # #             input_variables=["summaries", "question"],
+        # #         ),
+        # #     },
+        # # )
+        # # test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
+        # # print("TEST OUTPUT", test_output['answer'])
+        #
+        # # prompt_template = """Retireve and summarize releavant information from the following document
+        # #
+        # #
+        # # {text}
+        # #
+        # #
+        # # Turn it into into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        # # Do not include budget, personality, user summary, personal preferences, or update time to categories. Do not include information about publisher or details. """
+        # # prompt_template = Template(prompt_template)
+        # #
+        # # prompt_template = prompt_template.render(
+        # #     original_prompt=prompt,
+        # #     assistant_category=assistant_category)
+        # # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])
+        # # chain_summary = load_summarize_chain(OpenAI(temperature=0), chain_type="map_reduce", return_intermediate_steps=True,
+        # #                              map_prompt=PROMPT, combine_prompt=PROMPT)
+        # # test_output = chain_summary({"input_documents": pages[1:20]},   return_only_outputs=True)
+        # #
+        # # print("TEST OUTPUT", test_output)
+        #
+        # json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        # prompt_template = """Known user summary: '{{ user_summary }} '.
+        # Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+        # Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
+        # Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+        #
+        # self.init_pinecone(index_name=self.index)
+        # try:
+        #     agent_summary = self._fetch_memories(
+        #         f"Users core summary", namespace="SUMMARY"
+        #     )
+        #     print("HERE IS THE AGENT SUMMARY", agent_summary)
+        #     agent_summary = str(agent_summary)
+        #
+        #     if (
+        #         str(agent_summary)
+        #         == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
+        #     ):
+        #         agent_summary = "None."
+        # except:
+        #     agent_summary = "None."
+        #
+        # import time
+        # start_time = time.time()
+        #
+        # class Option(BaseModel):
+        #     category: str  = Field(..., alias="category")
+        #     options: List
+        #
+        # class Result(BaseModel):
+        #     category: str
+        #     options: List[Option]
+        #     preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
+        # #
+        # # from pydantic import  validator
+        # # @validator("preference", pre=True)
+        # # def set_preference_value(cls, preference, values):
+        # #     if not preference and values.get("options"):
+        # #         preference = [values["options"][0].category]
+        # #     return preference
+        #
+        # class Response(BaseModel):
+        #     results: List[Result]
+        #
+        # class Main(BaseModel):
+        #     response: Response
+        # # system_context =  test_output['answer']
+        #
+        # system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on { assistant_category }. "
+        # guidance_query = f"Decompose statement into decision tree related to { assistant_category }. Decompose the following user request:"
+        # prompt_msgs = [
+        #     SystemMessage(
+        #         content=system_message
+        #     ),
+        #     HumanMessage(content=guidance_query),
+        #     HumanMessagePromptTemplate.from_template("{input}"),
+        #     HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
+        #     # HumanMessage(content=f"Tips: There should be three top level categories and one lower level category"),
+        #     HumanMessage(content=f"Tips: Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"),
+        # ]
+        # prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+        # chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
+        # output = await chain.arun(input = prompt)
+        #
+        # # Convert the dictionary to a Pydantic object
+        # my_object = parse_obj_as(Main, output)
+        # from pydantic import validate_model
+        # # my_object = Main(my_object.json())
+        # print("HERE IS THE OUTPUT", my_object.json())
+        # vectorstore: Pinecone = Pinecone.from_existing_index(
+        #     index_name=self.index,
+        #     embedding=OpenAIEmbeddings(),
+        #     namespace="GOAL",
+        # )
+        # from datetime import datetime
+        #
+        # retriever = vectorstore.as_retriever()
+        # logging.info(str(output))
+        # print("HERE IS THE CHAIN RESULT", output)
+        # retriever.add_documents(
+        #     [
+        #         Document(
+        #             page_content=str(output),
+        #             metadata={
+        #                 "inserted_at": datetime.now(),
+        #                 "text": str(output),
+        #                 "user_id": self.user_id,
+        #             },
+        #             namespace="GOAL",
+        #         )
+        #     ]
+        # )
+        # end_time = time.time()
+        # # Calculate the elapsed time
+        # elapsed_time = end_time - start_time
+        # # Print the elapsed time
+        # print(f"Elapsed time: {elapsed_time} seconds")
+        #
+        # data =my_object.dict()
+        #
+        # for result in data["response"]["results"]:
+        #     # Check if preference is empty and options exist
+        #     if not result["preference"] and result["options"]:
+        #         # Get the second nested category value
+        #         second_category = result["options"][0]["category"]
+        #         # Assign it to the preference
+        #         result["preference"] = [second_category]
+        #
+        # print(data)
+        #
+        # return data
+
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        # self.init_pinecone(index_name=self.index)
-        # vectorstore: Pinecone = Pinecone.from_existing_index(
-        #     index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
-        # )
-        # retriever = vectorstore.as_retriever()
-        #
-        # template = """
-        # {summaries}
-        # {question}
-        # """
-        #
-        # chain = RetrievalQAWithSourcesChain.from_chain_type(
-        #     llm=OpenAI(temperature=0),
-        #     chain_type="stuff",
-        #     retriever=retriever,
-        #     chain_type_kwargs={
-        #         "prompt": PromptTemplate(
-        #             template=template,
-        #             input_variables=["summaries", "question"],
-        #         ),
-        #     },
-        # )
-        # test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
-        # print("TEST OUTPUT", test_output['answer'])
+        self.init_pinecone(index_name=self.index)
+        vectorstore: Pinecone = Pinecone.from_existing_index(
+            index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
+        )
+        retriever = vectorstore.as_retriever()
+
+        template = """
+           {summaries}
+           {question}
+           """
+
+        chain = RetrievalQAWithSourcesChain.from_chain_type(
+            llm=OpenAI(temperature=0),
+            chain_type="stuff",
+            retriever=retriever,
+            chain_type_kwargs={
+                "prompt": PromptTemplate(
+                    template=template,
+                    input_variables=["summaries", "question"],
+                ),
+            },
+        )
+        test_output = chain(
+            "Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
+        print("TEST OUTPUT", test_output['answer'])
 
         # prompt_template = """Retireve and summarize releavant information from the following document
         #
@@ -646,9 +808,9 @@ class Agent:
 
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """Known user summary: '{{ user_summary }} '.
-        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
-        Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+           Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
+           Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
 
         self.init_pinecone(index_name=self.index)
         try:
@@ -659,8 +821,8 @@ class Agent:
             agent_summary = str(agent_summary)
 
             if (
-                str(agent_summary)
-                == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
+                    str(agent_summary)
+                    == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
             ):
                 agent_summary = "None."
         except:
@@ -669,93 +831,48 @@ class Agent:
         import time
         start_time = time.time()
 
-        class Option(BaseModel):
-            category: str  = Field(..., alias="category")
-            options: List
-
-        class Result(BaseModel):
-            category: str
-            options: List[Option]
-            preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
-        #
-        # from pydantic import  validator
-        # @validator("preference", pre=True)
-        # def set_preference_value(cls, preference, values):
-        #     if not preference and values.get("options"):
-        #         preference = [values["options"][0].category]
-        #     return preference
-
-        class Response(BaseModel):
-            results: List[Result]
-
-        class Main(BaseModel):
-            response: Response
-        # system_context =  test_output['answer']
-
-        system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on { assistant_category }. "
-        guidance_query = f"Decompose statement into decision tree related to { assistant_category }. "
-        prompt_msgs = [
-            SystemMessage(
-                content=system_message
-            ),
-            HumanMessage(content=guidance_query),
-            HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            HumanMessage(content=f"Result should have three categories and one option each"),
-            HumanMessage(content=f"Tips: Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"),
-        ]
-        prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = await chain.arun(input = prompt)
-
-        # Convert the dictionary to a Pydantic object
-        my_object = parse_obj_as(Main, output)
-        from pydantic import validate_model
-        # my_object = Main(my_object.json())
-        print("HERE IS THE OUTPUT", my_object.json())
-        vectorstore: Pinecone = Pinecone.from_existing_index(
-            index_name=self.index,
-            embedding=OpenAIEmbeddings(),
-            namespace="GOAL",
+        agent_summary = agent_summary.split(".", 1)[0]
+        template = Template(prompt_template)
+        output = template.render(
+            prompt_str=prompt,
+            json_example=json_example,
+            user_summary=agent_summary,
+            assistant_category=assistant_category,
+            nutritional_context=test_output['answer']
         )
-        from datetime import datetime
-
-        retriever = vectorstore.as_retriever()
-        logging.info(str(output))
-        print("HERE IS THE CHAIN RESULT", output)
-        retriever.add_documents(
-            [
-                Document(
-                    page_content=str(output),
-                    metadata={
-                        "inserted_at": datetime.now(),
-                        "text": str(output),
-                        "user_id": self.user_id,
-                    },
-                    namespace="GOAL",
-                )
-            ]
-        )
-        end_time = time.time()
-        # Calculate the elapsed time
-        elapsed_time = end_time - start_time
-        # Print the elapsed time
-        print(f"Elapsed time: {elapsed_time} seconds")
-
-        data =my_object.dict()
-
-        for result in data["response"]["results"]:
-            # Check if preference is empty and options exist
-            if not result["preference"] and result["options"]:
-                # Get the second nested category value
-                second_category = result["options"][0]["category"]
-                # Assign it to the preference
-                result["preference"] = [second_category]
-
-        print(data)
-
-        return data
-
+        complete_query = output
+        print("HERE IS THE COMPLETE QUERY", complete_query)
+        complete_query = PromptTemplate.from_template(complete_query)
+        if model_speed == "fast":
+            output = self.replicate_llm(output)
+            json_data = json.dumps(output)
+            return json_data
+        else:
+            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
+            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+            vectorstore: Pinecone = Pinecone.from_existing_index(
+                index_name=self.index,
+                embedding=OpenAIEmbeddings(),
+                namespace="GOAL",
+            )
+            from datetime import datetime
+            retriever = vectorstore.as_retriever()
+            logging.info(str(chain_result))
+            print("HERE IS THE CHAIN RESULT", chain_result)
+            retriever.add_documents(
+                [
+                    Document(
+                        page_content=chain_result,
+                        metadata={
+                            "inserted_at": datetime.now(),
+                            "text": chain_result,
+                            "user_id": self.user_id,
+                        },
+                        namespace="GOAL",
+                    )
+                ]
+            )
+        return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(
         self, prompt: str, assistant_category, model_speed: str

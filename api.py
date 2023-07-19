@@ -191,24 +191,38 @@ async def action_add_zapier_calendar_action(
     return JSONResponse(content={"response": outcome})
 
 
+# @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
+# async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
+#     json_payload = request_data.payload
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     output = await agent.prompt_to_choose_tree(
+#         json_payload["prompt"],
+#         model_speed=json_payload["model_speed"],
+#         assistant_category="food",
+#     )
+#     logging.info("HERE IS THE CHAIN RESULT %s", output)
+#
+#     # result = json.dumps(
+#     #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
+#     # )
+#     # return JSONResponse(content={"response": json.loads(result)})
+#     return JSONResponse(content=output)
 @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.prompt_to_choose_tree(
+    output = agent.prompt_to_choose_tree(
         json_payload["prompt"],
         model_speed=json_payload["model_speed"],
         assistant_category="food",
     )
     logging.info("HERE IS THE CHAIN RESULT %s", output)
-
-    # result = json.dumps(
-    #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
-    # )
-    # return JSONResponse(content={"response": json.loads(result)})
-    return JSONResponse(content=output)
-
+    result = json.dumps(
+        {"results": list(map(splitter, output.replace('"', "").split(";")))}
+    )
+    return JSONResponse(content={"response": json.loads(result)})
 def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
     class Payload(BaseModel):
         payload: Dict[str, Any]
