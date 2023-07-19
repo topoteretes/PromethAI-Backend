@@ -132,7 +132,7 @@ class Agent:
             max_tokens=1400,
             openai_api_key=self.OPENAI_API_KEY,
             model_name="gpt-4-0613",
-            cache=False,
+            cache=True,
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
