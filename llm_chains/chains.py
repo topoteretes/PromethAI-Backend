@@ -752,6 +752,8 @@ class Agent:
                 # Assign it to the preference
                 result["preference"] = [second_category]
 
+        print(data)
+
         return data
 
 
