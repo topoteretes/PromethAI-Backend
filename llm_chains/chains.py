@@ -113,7 +113,7 @@ class Agent:
             :-3
         ]  #  Timestamp with millisecond precision
         self.last_message = ""
-        self.openai_model35 = "gpt-3.5-turbo-0613"
+        self.openai_model35 = "gpt-3.5-turbo-16k-0613"
         self.openai_model4 = "gpt-4-0613"
         self.llm = OpenAI(
             temperature=0.0,
@@ -673,31 +673,29 @@ class Agent:
         import time
         start_time = time.time()
 
+        class Decision(BaseModel):
+            category: str
+            decision: str
+
+        class JSONExample(BaseModel):
+            decisions: List[Decision]
         class Option(BaseModel):
-            category: str  = Field(..., alias="category")
-            options: List
+            category: str = Field(..., description="Category of the decision tree", alias="category")
+            options: List = Field(None, description="Options user selects")
 
         class Result(BaseModel):
-            category: str
-            options: List[Option]
+            category: str = Field(None, description="Category of the decision tree")
+            options: List[Option]  = Field(None, description="Options user selects")
             preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
-        #
-        # from pydantic import  validator
-        # @validator("preference", pre=True)
-        # def set_preference_value(cls, preference, values):
-        #     if not preference and values.get("options"):
-        #         preference = [values["options"][0].category]
-        #     return preference
-
         class Response(BaseModel):
-            results: List[Result]
+            results: List[Result] = Field(None, description="List of the results of the decision tree")
 
         class Main(BaseModel):
-            response: Response
+            response: Response = Field(None, description="Complete decision tree response")
         # system_context =  test_output['answer']
 
         system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on { assistant_category }. "
-        guidance_query = f"Decompose statement into decision tree related to { assistant_category }. Decompose the following user request:"
+        guidance_query = f"Decompose human thoughts into decision trees on { assistant_category }. Decompose the following user request:"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
@@ -705,8 +703,6 @@ class Agent:
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            # HumanMessage(content=f"Tips: There should be three top level categories and one lower level category"),
-            HumanMessage(content=f"Tips: Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
@@ -714,6 +710,15 @@ class Agent:
 
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
+
+        # def map_json_example_to_response(json_example: JSONExample) -> Response:
+        #     results = []
+        #     for decision in json_example.decisions:
+        #         option = Option(category=decision.category, options=[decision.decision])
+        #         result = Result(category=decision.category, options=[option])
+        #         results.append(result)
+        #     return Response(results=results)
+        # my_object = map_json_example_to_response(my_object)
         from pydantic import validate_model
         # my_object = Main(my_object.json())
         print("HERE IS THE OUTPUT", my_object.json())
@@ -755,8 +760,6 @@ class Agent:
                 second_category = result["options"][0]["category"]
                 # Assign it to the preference
                 result["preference"] = [second_category]
-
-        print(data)
 
         return data
 
