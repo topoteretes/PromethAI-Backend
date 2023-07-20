@@ -703,7 +703,7 @@ class Agent:
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
 
-
+        # from pydantic import BaseModel, parse_raw
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
 
@@ -717,30 +717,30 @@ class Agent:
         # my_object = map_json_example_to_response(my_object)
         from pydantic import validate_model
         # my_object = Main(my_object.json())
-        print("HERE IS THE OUTPUT", my_object.json())
-        vectorstore: Pinecone = Pinecone.from_existing_index(
-            index_name=self.index,
-            embedding=OpenAIEmbeddings(),
-            namespace="GOAL",
-        )
-        from datetime import datetime
-
-        retriever = vectorstore.as_retriever()
-        logging.info(str(output))
-        print("HERE IS THE CHAIN RESULT", output)
-        retriever.add_documents(
-            [
-                Document(
-                    page_content=str(output),
-                    metadata={
-                        "inserted_at": datetime.now(),
-                        "text": str(output),
-                        "user_id": self.user_id,
-                    },
-                    namespace="GOAL",
-                )
-            ]
-        )
+        # print("HERE IS THE OUTPUT", my_object.json())
+        # vectorstore: Pinecone = Pinecone.from_existing_index(
+        #     index_name=self.index,
+        #     embedding=OpenAIEmbeddings(),
+        #     namespace="GOAL",
+        # )
+        # from datetime import datetime
+        #
+        # retriever = vectorstore.as_retriever()
+        # logging.info(str(output))
+        # print("HERE IS THE CHAIN RESULT", output)
+        # retriever.add_documents(
+        #     [
+        #         Document(
+        #             page_content=str(output),
+        #             metadata={
+        #                 "inserted_at": datetime.now(),
+        #                 "text": str(output),
+        #                 "user_id": self.user_id,
+        #             },
+        #             namespace="GOAL",
+        #         )
+        #     ]
+        # )
 
 
         data =my_object.dict()
@@ -758,7 +758,7 @@ class Agent:
             return data
         data_pr = process_pref(data)
 
-        logging.info(str(data_pr))
+        logging.info("HERE IS THE FINAL RESULT", str(data_pr))
         print("HERE IS THE FINAL RESULT", data_pr)
         return data_pr
 
