@@ -709,7 +709,7 @@ class Agent:
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Main, self.llm35_fast, prompt_, verbose=True)
+        chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
         output = await chain.arun(input = prompt)
 
 
