@@ -674,9 +674,6 @@ class Agent:
         except:
             agent_summary = "None."
 
-        import time
-        start_time = time.time()
-
         class Option(BaseModel):
             category: str = Field(..., description="Category of the decision tree", alias="category")
             options: List = Field(None, description="Options user selects")
