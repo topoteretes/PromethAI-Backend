@@ -677,12 +677,6 @@ class Agent:
         import time
         start_time = time.time()
 
-        class Decision(BaseModel):
-            category: str
-            decision: str
-
-        class JSONExample(BaseModel):
-            decisions: List[Decision]
         class Option(BaseModel):
             category: str = Field(..., description="Category of the decision tree", alias="category")
             options: List = Field(None, description="Options user selects")
@@ -768,6 +762,9 @@ class Agent:
             print("UPDATED OUTPUT", data)
             return data
         data = process_pref(data)
+
+        logging.info(str(data))
+        print("HERE IS THE FINAL RESULT", data)
         return data
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
