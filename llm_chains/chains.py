@@ -115,11 +115,12 @@ class Agent:
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo-16k-0613"
         self.openai_model4 = "gpt-4-0613"
-        self.llm = OpenAI(
+        self.llm = ChatOpenAI(
             temperature=0.0,
             max_tokens=1500,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
+            cache=False,
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
@@ -128,12 +129,12 @@ class Agent:
             model_name=self.openai_model35,
             cache=False,
         )
-        self.llm_fast = OpenAI(
+        self.llm_fast = ChatOpenAI(
             temperature=0.0,
             max_tokens=1400,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model4,
-            cache=True,
+            cache=False,
         )
         self.llm35 = ChatOpenAI(
             temperature=0.0,
