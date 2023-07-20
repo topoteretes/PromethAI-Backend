@@ -744,11 +744,7 @@ class Agent:
                 )
             ]
         )
-        end_time = time.time()
-        # Calculate the elapsed time
-        elapsed_time = end_time - start_time
-        # Print the elapsed time
-        print(f"Elapsed time: {elapsed_time} seconds")
+
 
         data =my_object.dict()
         def process_pref(data):
@@ -761,11 +757,11 @@ class Agent:
                     result["preference"] = [second_category]
             print("UPDATED OUTPUT", data)
             return data
-        data = process_pref(data)
+        data_pr = process_pref(data)
 
-        logging.info(str(data))
-        print("HERE IS THE FINAL RESULT", data)
-        return data
+        logging.info(str(data_pr))
+        print("HERE IS THE FINAL RESULT", data_pr)
+        return data_pr
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
     #     """Serves to generate agent goals and subgoals based on a prompt"""
