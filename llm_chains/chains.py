@@ -744,7 +744,9 @@ class Agent:
 
 
         data =my_object.dict()
+        print("HERE IS THE DICT", data)
         def process_pref(data):
+
             for result in data["response"]["results"]:
                 # Check if preference is empty and options exist
                 if not result["preference"] and result["options"]:
