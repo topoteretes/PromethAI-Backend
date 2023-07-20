@@ -765,7 +765,7 @@ class Agent:
                 second_category = result["options"][0]["category"]
                 # Assign it to the preference
                 result["preference"] = [second_category]
-
+        print("UPDATED OUTPUT", data)
         return data
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
