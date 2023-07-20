@@ -196,7 +196,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = await agent.prompt_to_choose_tree(
+    output = agent.prompt_to_choose_tree(
         json_payload["prompt"],
         model_speed=json_payload["model_speed"],
         assistant_category="food",
@@ -207,7 +207,7 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
     # )
     # return JSONResponse(content={"response": json.loads(result)})
-    return JSONResponse(content=output)
+    return JSONResponse(content=json.loads(output))
 # @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 # async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
 #     json_payload = request_data.payload

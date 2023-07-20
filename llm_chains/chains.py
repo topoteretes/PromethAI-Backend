@@ -38,7 +38,7 @@ import tiktoken
 import asyncio
 import logging
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
+from langchain import OpenAI
 from langchain.chains.summarize import load_summarize_chain
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
@@ -132,7 +132,7 @@ class Agent:
             temperature=0.0,
             max_tokens=1400,
             openai_api_key=self.OPENAI_API_KEY,
-            model_name="gpt-4-0613",
+            model_name=self.openai_model4,
             cache=True,
         )
         self.llm35 = ChatOpenAI(
@@ -604,7 +604,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    async def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
         # self.init_pinecone(index_name=self.index)
@@ -652,27 +652,22 @@ class Agent:
         #
         # print("TEST OUTPUT", test_output)
 
-        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        prompt_template = """Known user summary: '{{ user_summary }} '.
-        Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  Use the information to correct any major mistakes: {{nutritional_context}}
-        Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
 
-        self.init_pinecone(index_name=self.index)
-        try:
-            agent_summary = self._fetch_memories(
-                f"Users core summary", namespace="SUMMARY"
-            )
-            print("HERE IS THE AGENT SUMMARY", agent_summary)
-            agent_summary = str(agent_summary)
-
-            if (
-                str(agent_summary)
-                == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
-            ):
-                agent_summary = "None."
-        except:
-            agent_summary = "None."
+        # self.init_pinecone(index_name=self.index)
+        # try:
+        #     agent_summary = self._fetch_memories(
+        #         f"Users core summary", namespace="SUMMARY"
+        #     )
+        #     print("HERE IS THE AGENT SUMMARY", agent_summary)
+        #     agent_summary = str(agent_summary)
+        #
+        #     if (
+        #         str(agent_summary)
+        #         == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
+        #     ):
+        #         agent_summary = "None."
+        # except:
+        #     agent_summary = "None."
 
         class Option(BaseModel):
             category: str = Field(..., description="Category of the decision tree", alias="category")
@@ -701,7 +696,7 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = await chain.arun(input = prompt)
+        output = chain.run(input = prompt)
 
         # from pydantic import BaseModel, parse_raw
         # Convert the dictionary to a Pydantic object
@@ -758,9 +753,8 @@ class Agent:
             return data
         data_pr = process_pref(data)
 
-        logging.info("HERE IS THE FINAL RESULT", str(data_pr))
-        print("HERE IS THE FINAL RESULT", data_pr)
-        return data_pr
+        logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
+        return str(data_pr).replace("'", '"')
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
     #     """Serves to generate agent goals and subgoals based on a prompt"""
