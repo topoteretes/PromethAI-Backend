@@ -27,6 +27,11 @@ load_dotenv()
 
 
 app = FastAPI(debug=True)
+from auth.cognito.JWTBearer import JWTBearer
+from auth.auth import jwks
+auth = JWTBearer(jwks)
+
+from fastapi import Depends
 
 from typing import Optional
 # class Payload(BaseModel):
@@ -46,14 +51,6 @@ class ImageResponse(BaseModel):
     message: str
 
 
-
-
-
-
-
-
-
-# #
 def splitter(t):
     lst = t.split("=")
     if len(lst) >= 2:
@@ -71,11 +68,7 @@ def splitter(t):
         }
     else:
         return None
-from auth.cognito.JWTBearer import JWTBearer
-from auth.auth import jwks
-auth = JWTBearer(jwks)
 
-from fastapi import Depends
 
 
 @app.get("/", )
@@ -91,55 +84,54 @@ def health_check():
     Health check endpoint that returns the server status.
     """
     return {"status": "OK"}
-@app.post("/test", response_model=dict)
-async def test(request_data: Payload) -> dict:
-    """
-    Endpoint to clear the cache.
-
-    Parameters:
-    request_data (Payload): The request data containing the user and session IDs.
-
-    Returns:
-    dict: A dictionary with a message indicating the cache was cleared.
-    """
-    json_payload = request_data.payload
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    try:
-        agent._simple_test()
-        return JSONResponse(content={"response": "Test"}, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+# @app.post("/test", response_model=dict)
+# async def test(request_data: Payload) -> dict:
+#     """
+#     Endpoint to clear the cache.
+#
+#     Parameters:
+#     request_data (Payload): The request data containing the user and session IDs.
+#
+#     Returns:
+#     dict: A dictionary with a message indicating the cache was cleared.
+#     """
+#     json_payload = request_data.payload
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     try:
+#         agent._simple_test()
+#         return JSONResponse(content={"response": "Test"}, status_code=200)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 
 
-@app.post("/testbot", response_model=Dict[str, Any])
-async def test(request_data: Payload) -> Dict[str, Any]:
-    """
-    Endpoint to clear the cache.
 
-    Parameters:
-    request_data (Payload): The request data containing the user and session IDs.
 
-    Returns:
-    dict: A dictionary with a message indicating the cache was cleared.
-    """
-    json_payload = request_data.payload
-
-    try:
-        # Instantiate AppAgent and call manage_resources
-        app_agent = AppAgent(user_id=json_payload["user_id"])
-        app_agent.manage_resources("add", "web_page", "https://nav.al/agi")
-        return JSONResponse(content={"response": "Test"}, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/testbot", response_model=Dict[str, Any])
+# async def test(request_data: Payload) -> Dict[str, Any]:
+#     """
+#     Endpoint to clear the cache.
+#
+#     Parameters:
+#     request_data (Payload): The request data containing the user and session IDs.
+#
+#     Returns:
+#     dict: A dictionary with a message indicating the cache was cleared.
+#     """
+#     json_payload = request_data.payload
+#
+#     try:
+#         # Instantiate AppAgent and call manage_resources
+#         app_agent = AppAgent(user_id=json_payload["user_id"])
+#         app_agent.manage_resources("add", "web_page", "https://nav.al/agi")
+#         return JSONResponse(content={"response": "Test"}, status_code=200)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/clear-cache", response_model=dict,dependencies=[Depends(auth)])
-
 async def clear_cache(request_data: Payload) -> dict:
     """
     Endpoint to clear the cache.
@@ -170,25 +162,25 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
     return JSONResponse(content={"response": {"result": json.loads(output)}})
 
 
-@app.post("/action-add-zapier-calendar-action", response_model=dict,dependencies=[Depends(auth)])
-async def action_add_zapier_calendar_action(
-    request: Request, request_data: Payload
-) -> dict:
-    json_payload = request_data.payload
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    # Extract the bearer token from the header
-    auth_header = request.headers.get("Authorization")
-    if auth_header:
-        bearer_token = auth_header.replace("Bearer ", "")
-    else:
-        bearer_token = None
-    outcome = agent.add_zapier_calendar_action(
-        prompt_base=json_payload["prompt_base"],
-        token=bearer_token,
-        model_speed=json_payload["model_speed"],
-    )
-    return JSONResponse(content={"response": outcome})
+# @app.post("/action-add-zapier-calendar-action", response_model=dict,dependencies=[Depends(auth)])
+# async def action_add_zapier_calendar_action(
+#     request: Request, request_data: Payload
+# ) -> dict:
+#     json_payload = request_data.payload
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     # Extract the bearer token from the header
+#     auth_header = request.headers.get("Authorization")
+#     if auth_header:
+#         bearer_token = auth_header.replace("Bearer ", "")
+#     else:
+#         bearer_token = None
+#     outcome = agent.add_zapier_calendar_action(
+#         prompt_base=json_payload["prompt_base"],
+#         token=bearer_token,
+#         model_speed=json_payload["model_speed"],
+#     )
+#     return JSONResponse(content={"response": outcome})
 
 
 @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
@@ -202,12 +194,8 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
         assistant_category="food",
     )
     logging.info("HERE IS THE CHAIN RESULT %s", output)
-
-    # result = json.dumps(
-    #     {"results": list(map(splitter, output.replace('"', "").split(";")))}
-    # )
-    # return JSONResponse(content={"response": json.loads(result)})
     return JSONResponse(content=json.loads(output))
+
 # @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 # async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
 #     json_payload = request_data.payload
@@ -223,108 +211,108 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
 #         {"results": list(map(splitter, output.replace('"', "").split(";")))}
 #     )
 #     return JSONResponse(content={"response": json.loads(result)})
-def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
-    class Payload(BaseModel):
-        payload: Dict[str, Any]
-
-    @app.post(f"/chatbot/{category}", response_model=dict,dependencies=[Depends(auth)])
-    async def prompt_to_choose_tree(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        from bots.bot_extension import AppAgent
-        agent =  AppAgent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = agent.query(
-            json_payload["prompt"]
-        )
-        logging.info("HERE IS THE CHAIN RESULT %s", output)
-        return JSONResponse(content={"response": output})
-
-
+# def create_endpoint_with_resources(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
+#     class Payload(BaseModel):
+#         payload: Dict[str, Any]
+#
+#     @app.post(f"/chatbot/{category}", response_model=dict,dependencies=[Depends(auth)])
+#     async def prompt_to_choose_tree(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         from bots.bot_extension import AppAgent
+#         agent =  AppAgent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = agent.query(
+#             json_payload["prompt"]
+#         )
+#         logging.info("HERE IS THE CHAIN RESULT %s", output)
+#         return JSONResponse(content={"response": output})
 
 
-def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
-    class Payload(BaseModel):
-        payload: Dict[str, Any]
 
-    @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict,dependencies=[Depends(auth)])
-    async def prompt_to_choose_tree(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = agent.prompt_to_choose_tree(
-            json_payload["prompt"],
-            model_speed=json_payload["model_speed"],
-            assistant_category=category,
-        )
-        logging.info("HERE IS THE CHAIN RESULT %s", output)
-        result = json.dumps(
-            {"results": list(map(splitter, output.replace('"', "").split(";")))}
-        )
-
-        return JSONResponse(content={"response": json.loads(result)})
-
-    #this doesn't work
-    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict,dependencies=[Depends(auth)])
-    async def prompt_to_decompose_categories(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = await agent.prompt_decompose_to_tree_categories(
-            json_payload["prompt_struct"],
-            assistant_category=category,
-            model_speed=json_payload["model_speed"],
-        )
-        return JSONResponse(content={"response": output})
-
-    @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
-    async def update_agent_summary(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = await agent.update_agent_summary(
-            model_speed=json_payload["model_speed"]
-        )
-
-        return {"response": output}
-
-    @app.post(f"/{category}/prompt-to-update-tree", response_model=dict,dependencies=[Depends(auth)])
-    async def prompt_to_update_tree(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = agent.prompt_to_update_meal_tree(
-            json_payload["category"],
-            json_payload["from"],
-            json_payload["to"],
-            model_speed=json_payload["model_speed"],
-        )
-
-        print("HERE IS THE OUTPUT", output)
-        return JSONResponse(content={"response": output})
-
-    @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
-    async def fetch_user_summary(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        output = agent.fetch_user_summary(model_speed=json_payload["model_speed"])
-
-        return {"response": output}
-
-    @app.post(f"/{category}/request/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
-    async def solution_request(request_data: Payload) -> dict:
-        json_payload = request_data.payload
-        agent = Agent()
-        agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-        # method_to_call = getattr(agent, f"{solution_type}_generation")
-        output = await agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
-        output = output.replace("'", '"')
-        return JSONResponse(content={"response": json.loads(output)})
-
-
-# Load categories from a yaml file
-with open('assistant_templates.yaml', 'r') as file:
-    data = yaml.safe_load(file)
+#
+# def create_endpoint(category: str, solution_type: str, prompt: str, json_example: str, *args, **kwargs):
+#     class Payload(BaseModel):
+#         payload: Dict[str, Any]
+#
+#     @app.post(f"/{category}/prompt-to-choose-tree", response_model=dict,dependencies=[Depends(auth)])
+#     async def prompt_to_choose_tree(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = agent.prompt_to_choose_tree(
+#             json_payload["prompt"],
+#             model_speed=json_payload["model_speed"],
+#             assistant_category=category,
+#         )
+#         logging.info("HERE IS THE CHAIN RESULT %s", output)
+#         result = json.dumps(
+#             {"results": list(map(splitter, output.replace('"', "").split(";")))}
+#         )
+#
+#         return JSONResponse(content={"response": json.loads(result)})
+#
+#     #this doesn't work
+#     @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict,dependencies=[Depends(auth)])
+#     async def prompt_to_decompose_categories(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = await agent.prompt_decompose_to_tree_categories(
+#             json_payload["prompt_struct"],
+#             assistant_category=category,
+#             model_speed=json_payload["model_speed"],
+#         )
+#         return JSONResponse(content={"response": output})
+#
+#     @app.post(f"/{category}/update-agent-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
+#     async def update_agent_summary(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = await agent.update_agent_summary(
+#             model_speed=json_payload["model_speed"]
+#         )
+#
+#         return {"response": output}
+#
+#     @app.post(f"/{category}/prompt-to-update-tree", response_model=dict,dependencies=[Depends(auth)])
+#     async def prompt_to_update_tree(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = agent.prompt_to_update_meal_tree(
+#             json_payload["category"],
+#             json_payload["from"],
+#             json_payload["to"],
+#             model_speed=json_payload["model_speed"],
+#         )
+#
+#         print("HERE IS THE OUTPUT", output)
+#         return JSONResponse(content={"response": output})
+#
+#     @app.post(f"/{category}/fetch-user-summary/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
+#     async def fetch_user_summary(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         output = agent.fetch_user_summary(model_speed=json_payload["model_speed"])
+#
+#         return {"response": output}
+#
+#     @app.post(f"/{category}/request/{solution_type}", response_model=dict,dependencies=[Depends(auth)])
+#     async def solution_request(request_data: Payload) -> dict:
+#         json_payload = request_data.payload
+#         agent = Agent()
+#         agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#         # method_to_call = getattr(agent, f"{solution_type}_generation")
+#         output = await agent.solution_generation(json_payload["prompt"], prompt_template=prompt, json_example=json_example, model_speed="slow")
+#         output = output.replace("'", '"')
+#         return JSONResponse(content={"response": json.loads(output)})
+#
+#
+# # Load categories from a yaml file
+# with open('assistant_templates.yaml', 'r') as file:
+#     data = yaml.safe_load(file)
 
 
 # # Create an endpoint for each category and solution type
@@ -434,15 +422,15 @@ async def recipe_request(request_data: Payload) -> dict:
 #     return JSONResponse(content={"response": {"url": output}})
 
 
-@app.post("/voice-input", response_model=dict,dependencies=[Depends(auth)])
-async def voice_input(request_data: Payload) -> dict:
-    json_payload = request_data.payload
-    agent = Agent()
-    agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
-    output = agent.voice_text_input(
-        query=json_payload["query"], model_speed=json_payload["model_speed"]
-    )
-    return JSONResponse(content={"response": output})
+# @app.post("/voice-input", response_model=dict,dependencies=[Depends(auth)])
+# async def voice_input(request_data: Payload) -> dict:
+#     json_payload = request_data.payload
+#     agent = Agent()
+#     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+#     output = agent.voice_text_input(
+#         query=json_payload["query"], model_speed=json_payload["model_speed"]
+#     )
+#     return JSONResponse(content={"response": output})
 
 
 
