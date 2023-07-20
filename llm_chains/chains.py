@@ -710,9 +710,8 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35_fast, prompt_, verbose=True)
-        with get_openai_callback() as cb:
-            output = await chain.arun(input = prompt)
-            print(cb)
+        output = await chain.arun(input = prompt)
+
 
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
