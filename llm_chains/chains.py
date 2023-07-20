@@ -123,7 +123,7 @@ class Agent:
         )
         self.llm35_fast = ChatOpenAI(
             temperature=0.0,
-            max_tokens=450,
+            max_tokens=550,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
             cache=False,
