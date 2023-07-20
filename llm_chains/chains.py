@@ -68,18 +68,21 @@ if os.getenv("AWS_ENV", "") == "dev":
         "REDIS_HOST",
         "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
     )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+    langchain.llm_cache = RedisCache(
+        redis_=Redis(host="promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379,
+                     db=0))
     logging.info("Using redis cache for DEV")
 elif os.getenv("AWS_ENV", "") == "prd":
     REDIS_HOST = os.getenv(
         "REDIS_HOST",
         "promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
     )
-    langchain.llm_cache = RedisCache(redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379, db=0))
+    langchain.llm_cache = RedisCache(
+        redis_=Redis(host="promethai-prd-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com", port=6379,
+                     db=0))
     logging.info("Using redis cache for PRD")
 else:
     pass
-
 
 
 class Agent:
@@ -100,18 +103,18 @@ class Agent:
     )
 
     def __init__(
-        self,
-        table_name=None,
-        user_id: Optional[str] = "676",
-        session_id: Optional[str] = None,
+            self,
+            table_name=None,
+            user_id: Optional[str] = "676",
+            session_id: Optional[str] = None,
     ) -> None:
         self.table_name = table_name
         self.user_id = user_id
         self.session_id = session_id
         # self.memory = None
         self.thought_id_timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")[
-            :-3
-        ]  #  Timestamp with millisecond precision
+                                    :-3
+                                    ]  # Timestamp with millisecond precision
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo-16k-0613"
         self.openai_model4 = "gpt-4-0613"
@@ -216,7 +219,7 @@ class Agent:
     #             )
     #         ]
     #     )
-    def _update_memories(self, observation: str, namespace: str, page:str = "", source:str="") -> None:
+    def _update_memories(self, observation: str, namespace: str, page: str = "", source: str = "") -> None:
         """Update related characteristics, preferences or dislikes for a user."""
         from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -399,9 +402,9 @@ class Agent:
         json_data = json.dumps(chain_result)
         return json_data
 
-    async def solution_generation(self, prompt: str, prompt_template:str = None, json_example:str=None, model_speed: str= None):
+    async def solution_generation(self, prompt: str, prompt_template: str = None, json_example: str = None,
+                                  model_speed: str = None):
         """Generates a recipe solution in json"""
-
 
         if prompt_template is None:
             prompt_base = """ Create a food recipe based on the following prompt: '{{prompt}}'. Instructions and ingredients should have medium detail.
@@ -412,7 +415,7 @@ class Agent:
         if json_example is None:
             json_example = """{"recipes":[{"title":"value","rating":"value","prep_time":"value","cook_time":"value","description":"value","ingredients":["value"],"instructions":["value"]}]}"""
         else:
-            json_example= json_example
+            json_example = json_example
 
         # json_example = str(json_example).replace("{", "{{").replace("}", "}}")
         # template = Template(prompt_base)
@@ -420,7 +423,6 @@ class Agent:
         #                          , json_example=json_example)
         # complete_query = output
         # complete_query = PromptTemplate.from_template(complete_query)
-
 
         # Define the response schema
         class Recipe(BaseModel):
@@ -449,13 +451,11 @@ class Agent:
         chain = create_structured_output_chain(RecordRecipe, self.llm35, prompt_, verbose=True)
         from langchain.callbacks import get_openai_callback
         with get_openai_callback() as cb:
-            output = await chain.arun(input = prompt)
+            output = await chain.arun(input=prompt)
             print(cb)
         # output = json.dumps(output)
         my_object = parse_obj_as(RecordRecipe, output)
         return my_object.dict()
-
-
 
         # if model_speed == "fast":
         #     output = self.replicate_llm(output)
@@ -489,12 +489,12 @@ class Agent:
             return None  # if unsuccessful, return None
 
     async def async_generate(
-        self,
-        prompt_template_base,
-        base_category,
-        base_value,
-        list_of_items,
-        assistant_category,
+            self,
+            prompt_template_base,
+            base_category,
+            base_value,
+            list_of_items,
+            assistant_category,
     ):
         """Generates an individual solution choice"""
         json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
@@ -515,8 +515,6 @@ class Agent:
             exclusion_categories=list_as_string,
         )
         complete_query = PromptTemplate.from_template(output)
-
-
 
         chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
         chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
@@ -571,7 +569,7 @@ class Agent:
             print("HERE ARE THE valid RESULTS %s", len(results))
             # Parse each JSON string and add it to a list
             results = [
-                result[result.find("{") : result.rfind("}") + 1] for result in results
+                result[result.find("{"): result.rfind("}") + 1] for result in results
             ]
             results_list = [json.loads(result) for result in results]
 
@@ -591,9 +589,7 @@ class Agent:
             combined_json = {"results": results_list}
             return combined_json
 
-
     def _loader(self, path: str, namespace: str):
-
 
         loader = PyPDFLoader("../document_store/nutrition/Human_Nutrition.pdf")
         pages = loader.load_and_split()
@@ -605,88 +601,39 @@ class Agent:
         return "Success"
         # print(type(pages))
 
+    def _process_pref(self,data):
+
+        for result in data["response"]["results"]:
+            # Check if preference is empty and options exist
+            if not result["preference"] and result["options"]:
+                # Get the second nested category value
+                second_category = result["options"][0]["category"]
+                # Assign it to the preference
+                result["preference"] = [second_category]
+        print("UPDATED OUTPUT", data)
+        return data
+
     def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
-
-        # self.init_pinecone(index_name=self.index)
-        # vectorstore: Pinecone = Pinecone.from_existing_index(
-        #     index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
-        # )
-        # retriever = vectorstore.as_retriever()
-        #
-        # template = """
-        # {summaries}
-        # {question}
-        # """
-        #
-        # chain = RetrievalQAWithSourcesChain.from_chain_type(
-        #     llm=OpenAI(temperature=0),
-        #     chain_type="stuff",
-        #     retriever=retriever,
-        #     chain_type_kwargs={
-        #         "prompt": PromptTemplate(
-        #             template=template,
-        #             input_variables=["summaries", "question"],
-        #         ),
-        #     },
-        # )
-        # test_output = chain("Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
-        # print("TEST OUTPUT", test_output['answer'])
-
-        # prompt_template = """Retireve and summarize releavant information from the following document
-        #
-        #
-        # {text}
-        #
-        #
-        # Turn it into into decision tree that take into account user summary information and related to {{ assistant_category }}.
-        # Do not include budget, personality, user summary, personal preferences, or update time to categories. Do not include information about publisher or details. """
-        # prompt_template = Template(prompt_template)
-        #
-        # prompt_template = prompt_template.render(
-        #     original_prompt=prompt,
-        #     assistant_category=assistant_category)
-        # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])
-        # chain_summary = load_summarize_chain(OpenAI(temperature=0), chain_type="map_reduce", return_intermediate_steps=True,
-        #                              map_prompt=PROMPT, combine_prompt=PROMPT)
-        # test_output = chain_summary({"input_documents": pages[1:20]},   return_only_outputs=True)
-        #
-        # print("TEST OUTPUT", test_output)
-
-
-        # self.init_pinecone(index_name=self.index)
-        # try:
-        #     agent_summary = self._fetch_memories(
-        #         f"Users core summary", namespace="SUMMARY"
-        #     )
-        #     print("HERE IS THE AGENT SUMMARY", agent_summary)
-        #     agent_summary = str(agent_summary)
-        #
-        #     if (
-        #         str(agent_summary)
-        #         == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
-        #     ):
-        #         agent_summary = "None."
-        # except:
-        #     agent_summary = "None."
-
         class Option(BaseModel):
             category: str = Field(..., description="Category of the decision tree", alias="category")
             options: List = Field(None, description="Options user selects")
 
         class Result(BaseModel):
             category: str = Field(None, description="Category of the decision tree")
-            options: List[Option]  = Field(None, description="Options user selects")
-            preference: Optional[List] = Field([], description="Single preference is just a value of the first category")
+            options: List[Option] = Field(None, description="Options user selects")
+            preference: Optional[List] = Field([],
+                                               description="Single preference is just a value of the first category")
         class Response(BaseModel):
             results: List[Result] = Field(None, description="List of the results of the decision tree")
 
         class Main(BaseModel):
             response: Response = Field(None, description="Complete decision tree response")
+
         # system_context =  test_output['answer']
 
-        system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on { assistant_category }. "
-        guidance_query = f"Decompose human thoughts into decision trees on { assistant_category }. Decompose the following user request:"
+        system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on {assistant_category}. "
+        guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. Decompose the following user request:"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
@@ -697,63 +644,13 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = chain.run(input = prompt)
-
+        output = chain.run(input=prompt)
         # from pydantic import BaseModel, parse_raw
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
-
-        # def map_json_example_to_response(json_example: JSONExample) -> Response:
-        #     results = []
-        #     for decision in json_example.decisions:
-        #         option = Option(category=decision.category, options=[decision.decision])
-        #         result = Result(category=decision.category, options=[option])
-        #         results.append(result)
-        #     return Response(results=results)
-        # my_object = map_json_example_to_response(my_object)
-        from pydantic import validate_model
-        # my_object = Main(my_object.json())
-        # print("HERE IS THE OUTPUT", my_object.json())
-        # vectorstore: Pinecone = Pinecone.from_existing_index(
-        #     index_name=self.index,
-        #     embedding=OpenAIEmbeddings(),
-        #     namespace="GOAL",
-        # )
-        # from datetime import datetime
-        #
-        # retriever = vectorstore.as_retriever()
-        # logging.info(str(output))
-        # print("HERE IS THE CHAIN RESULT", output)
-        # retriever.add_documents(
-        #     [
-        #         Document(
-        #             page_content=str(output),
-        #             metadata={
-        #                 "inserted_at": datetime.now(),
-        #                 "text": str(output),
-        #                 "user_id": self.user_id,
-        #             },
-        #             namespace="GOAL",
-        #         )
-        #     ]
-        # )
-
-
-        data =my_object.dict()
+        data = my_object.dict()
         print("HERE IS THE DICT", data)
-        def process_pref(data):
-
-            for result in data["response"]["results"]:
-                # Check if preference is empty and options exist
-                if not result["preference"] and result["options"]:
-                    # Get the second nested category value
-                    second_category = result["options"][0]["category"]
-                    # Assign it to the preference
-                    result["preference"] = [second_category]
-            print("UPDATED OUTPUT", data)
-            return data
-        data_pr = process_pref(data)
-
+        data_pr = self._process_pref(data)
         logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
         return str(data_pr).replace("'", '"')
 
@@ -875,7 +772,7 @@ class Agent:
     #     return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(
-        self, prompt: str, assistant_category, model_speed: str
+            self, prompt: str, assistant_category, model_speed: str
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
         combined_json = await self.generate_concurrently(prompt, assistant_category)
@@ -884,7 +781,7 @@ class Agent:
         #     yield result
 
     def prompt_to_update_meal_tree(
-        self, category: str, from_: str, to_: str, model_speed: str
+            self, category: str, from_: str, to_: str, model_speed: str
     ):
         self.init_pinecone(index_name=self.index)
         vectorstore: Pinecone = Pinecone.from_existing_index(
@@ -949,7 +846,7 @@ class Agent:
             "website": website,
         }
 
-    async def restaurant_generation(self, prompt: str,prompt_template:str, json_example:str, model_speed: str):
+    async def restaurant_generation(self, prompt: str, prompt_template: str, json_example: str, model_speed: str):
         """Serves to suggest a restaurant to the agent"""
 
         if prompt:
@@ -1035,7 +932,6 @@ class Agent:
     def voice_text_input(self, query: str, model_speed: str):
         """Serves to generate sub goals for the user and or update the user's preferences"""
 
-
         class GoalWrapper(BaseModel):
             observation: str = Field(
                 description="observation we want to fetch from vectordb"
@@ -1118,7 +1014,7 @@ if __name__ == "__main__":
     # agent.update_agent_preferences("Alergic to corn")
     # agent.add_zapier_calendar_action("I would like to schedule 1 hour meeting tomorrow at 12 about brocolli", 'bla', 'BLA')
     # agent.update_agent_summary(model_speed="slow")
-    #agent.solution_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
+    # agent.solution_generation(prompt="I would like a healthy chicken meal over 125$", model_speed="slow")
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
@@ -1137,4 +1033,4 @@ if __name__ == "__main__":
     # print(result)
     # agent._test()
     # agent.update_agent_summary(model_speed="slow")
-    #agent.voice_text_input("Core prompt ", model_speed="slow")
+    # agent.voice_text_input("Core prompt ", model_speed="slow")
