@@ -1,19 +1,15 @@
 from langchain.document_loaders import PyPDFLoader
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.chains.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
-from langchain import PromptTemplate
-from langchain.tools import BaseTool, StructuredTool, Tool, tool
-from pydantic import BaseModel, parse_obj_as
+
+
 import pinecone
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict
-from langchain import LLMMathChain, SerpAPIWrapper
-from langchain.agents import AgentType, initialize_agent
-from langchain.tools import BaseTool, StructuredTool, Tool, tool
+from langchain.agents import initialize_agent
+from langchain.tools import  tool
 from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
 import openai
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,  parse_obj_as
 import re
 from jinja2 import Template
 from dotenv import load_dotenv
@@ -23,27 +19,18 @@ from langchain.chains import SimpleSequentialChain
 from langchain.chains.openai_functions import (
     create_openai_fn_chain, create_structured_output_chain
 )
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
-from langchain.llms import OpenAI
-from langchain.chat_models import ChatOpenAI
-# from heuristic_experience_orchestrator.prompt_template_modification import PromptTemplate
-# from langchain.retrievers import TimeWeightedVectorStoreRetriever
 import os
-from food_scrapers import wolt_tool
+
 import json
 from langchain.tools import GooglePlacesTool
 import tiktoken
 import asyncio
 import logging
 from langchain.chat_models import ChatOpenAI
-from langchain import OpenAI
-from langchain.chains.summarize import load_summarize_chain
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
 from langchain.utilities.zapier import ZapierNLAWrapper
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from langchain.prompts import PromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate
 from typing import Optional
 
@@ -57,7 +44,7 @@ from langchain.llms import Replicate
 from redis import Redis
 from langchain.cache import RedisCache
 import os
-from langchain import llm_cache
+# from langchain import llm_cache
 
 # langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
 # logging.info("Using redis cache")
@@ -97,10 +84,6 @@ class Agent:
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
     REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
-    REDIS_HOST = os.getenv(
-        "REDIS_HOST",
-        "promethai-dev-backend-redis-repl-gr.60qtmk.ng.0001.euw1.cache.amazonaws.com",
-    )
 
     def __init__(
             self,
@@ -154,9 +137,6 @@ class Agent:
         self.verbose: bool = True
         self.openai_temperature = 0.0
         self.index = "my-agent"
-        # os.environ["OPENAI_API_KEY"] = self.OPENAI_API_KEY
-        # docs = [Document(page_content=t) for t in pages[1:-1]]
-        # print('HERE IS THE LEN OF DOCS', str(len(docs)))
 
     def clear_cache(self):
         langchain.llm_cache.clear()
@@ -190,7 +170,6 @@ class Agent:
 
             return chain_result
 
-    #
     # create the length function
     def tiktoken_len(self, text):
         tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -618,7 +597,6 @@ class Agent:
         class Option(BaseModel):
             category: str = Field(..., description="Category of the decision tree", alias="category")
             options: List = Field(None, description="Options user selects")
-
         class Result(BaseModel):
             category: str = Field(None, description="Category of the decision tree")
             options: List[Option] = Field(None, description="Options user selects")
@@ -629,8 +607,6 @@ class Agent:
 
         class Main(BaseModel):
             response: Response = Field(None, description="Complete decision tree response")
-
-        # system_context =  test_output['answer']
 
         system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on {assistant_category}. "
         guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. Decompose the following user request:"
