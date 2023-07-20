@@ -757,15 +757,17 @@ class Agent:
         print(f"Elapsed time: {elapsed_time} seconds")
 
         data =my_object.dict()
-
-        for result in data["response"]["results"]:
-            # Check if preference is empty and options exist
-            if not result["preference"] and result["options"]:
-                # Get the second nested category value
-                second_category = result["options"][0]["category"]
-                # Assign it to the preference
-                result["preference"] = [second_category]
-        print("UPDATED OUTPUT", data)
+        def process_pref(data):
+            for result in data["response"]["results"]:
+                # Check if preference is empty and options exist
+                if not result["preference"] and result["options"]:
+                    # Get the second nested category value
+                    second_category = result["options"][0]["category"]
+                    # Assign it to the preference
+                    result["preference"] = [second_category]
+            print("UPDATED OUTPUT", data)
+            return data
+        data = process_pref(data)
         return data
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
