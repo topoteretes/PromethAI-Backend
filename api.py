@@ -183,7 +183,7 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
 #     return JSONResponse(content={"response": outcome})
 
 
-@app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
+@app.post("/prompt-to-choose-meal-tree", response_model=dict, dependencies=[Depends(auth)])
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -193,7 +193,6 @@ async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
         model_speed=json_payload["model_speed"],
         assistant_category="food",
     )
-    logging.info("HERE IS THE CHAIN RESULT %s", output)
     return JSONResponse(content=json.loads(output))
 
 # @app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
@@ -370,7 +369,6 @@ async def prompt_to_update_meal_tree(request_data: Payload) -> dict:
         json_payload["to"],
         model_speed=json_payload["model_speed"],
     )
-    print("HERE IS THE OUTPUT", output)
     return JSONResponse(content={"response": output})
 
 

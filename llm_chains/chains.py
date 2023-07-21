@@ -580,8 +580,7 @@ class Agent:
         return "Success"
         # print(type(pages))
 
-    def _process_pref(self,data):
-
+    def _process_pref(self, data):
         for result in data["response"]["results"]:
             # Check if preference is empty and options exist
             if not result["preference"] and result["options"]:
@@ -589,27 +588,45 @@ class Agent:
                 second_category = result["options"][0]["category"]
                 # Assign it to the preference
                 result["preference"] = [second_category]
+
+        # Assuming data is a dictionary with the structure you described
+        def remove_second_subnested_category(categories):
+            for category_data in categories:
+                if "options" in category_data:
+                    # If there are options in the current category, check if there is a second subnested category and remove it if it exists
+                    try:
+                        category_data["options"].pop(1)
+                    except IndexError:
+                        pass
+
+                    # Recursively iterate over all subcategories, if any
+                    remove_second_subnested_category(category_data["options"])
+
+        remove_second_subnested_category(data["response"]["results"])
         print("UPDATED OUTPUT", data)
         return data
+
+        # Assuming you have the JSON data in the "data" variable
 
     def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
         class Option(BaseModel):
-            category: str = Field(..., description="Category of the decision tree", alias="category")
+            category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
             options: List = Field(None, description="Options user selects")
         class Result(BaseModel):
-            category: str = Field(None, description="Category of the decision tree")
-            options: List[Option] = Field(None, description="Options user selects")
-            preference: Optional[List] = Field([],
-                                               description="Single preference is just a value of the first category")
+            category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
+            options: List[Option] = Field(None, description="An array of option objects.")
+            preference: Optional[List] = Field([], description="Value of the first category")
         class Response(BaseModel):
             results: List[Result] = Field(None, description="List of the results of the decision tree")
 
         class Main(BaseModel):
             response: Response = Field(None, description="Complete decision tree response")
 
-        system_message = f"You are a world class algorithm for decomposing human thoughts into decision trees on {assistant_category}. "
-        guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. Decompose the following user request:"
+        system_message = f"You are a world class algorithm for decomposing human " \
+                         f"thoughts into decision trees on {assistant_category}. "
+        guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. " \
+                         f"Decompose the following user request:"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
@@ -617,6 +634,7 @@ class Agent:
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
+            HumanMessage(content=f"Tips: ")
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
@@ -994,17 +1012,17 @@ if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(agent.prompt_decompose_to_meal_tree_categories("diet=vegan;availability=cheap", "food", model_speed="slow"))
     # loop.close()
-    import asyncio
-
-
-    async def main():
-        out = await agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal Vietnamese cuisine",
-                                                assistant_category="food", model_speed="slow")
-        # Rest of your code here
-
-
-    # Run the async function
-    asyncio.run(main())
+    # import asyncio
+    #
+    #
+    # async def main():
+    #     out = await agent.prompt_to_choose_tree(prompt="I want would like a quick veggie meal Vietnamese cuisine",
+    #                                             assistant_category="food", model_speed="slow")
+    #     # Rest of your code here
+    #
+    #
+    # # Run the async function
+    # asyncio.run(main())
 
     # print(result)
     # agent._test()
