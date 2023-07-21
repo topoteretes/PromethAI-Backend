@@ -436,6 +436,24 @@ class Agent:
         my_object = parse_obj_as(RecordRecipe, output)
         return my_object.dict()
 
+
+
+    async def solution_name_generation(self, prompt: str, prompt_template: str = None, json_example: str = None,
+                                       model_speed: str = None):
+        """Generates a single recipe solution and returns the recipe title as a string."""
+
+        prompt = """ You are a cooking expert. Create a recipe suggestion title based on user prompt: {{prompt}} """
+        template = Template(prompt)
+        output = template.render(prompt_source=prompt)
+        complete_query = PromptTemplate.from_template(output)
+
+        chain = LLMChain(
+            llm=self.llm, prompt=complete_query, verbose=self.verbose
+        )
+        chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+        # json_data = json.dumps(chain_result)
+        return chain_result
+
         # if model_speed == "fast":
         #     output = self.replicate_llm(output)
         #     return output
