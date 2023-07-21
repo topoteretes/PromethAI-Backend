@@ -630,7 +630,7 @@ class Agent:
         """Serves to generate agent goals and subgoals based on a prompt"""
         class Option(BaseModel):
             category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
-            options: List = Field(None, description="Options user selects")
+            options: Optional[List] = Field([], description="Option")
         class Result(BaseModel):
             category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
             options: List[Option] = Field(None, description="An array of option objects.")
