@@ -92,9 +92,6 @@
 </p>
 
 
-<p align="center">
-  <a href="https://prometh.ai">Visit and sign up for the closed Beta at prometh.ai</a>
-</p>
 
 ## 🛣 Architecture
 <p align="center">
