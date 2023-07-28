@@ -65,6 +65,14 @@
 
 <hr>
 
+
+
+## What is it
+
+PromethAI is a Python-based AGI project that recommends  choices based on a user's goals and preferences and can modify its recommendations based on user feedback.
+
+Our focus is currently on food, but the system is extendible to any area.
+
 ## 💡 Features
 
 - Optimized for Autonomous Agents
@@ -120,18 +128,6 @@
 
 4. Ensure that Docker and Docker Compose are installed in your system, if not, Install it from [here](https://docs.docker.com/get-docker/). 
 5. Once you have Docker Desktop running, run command : `docker-compose up promethai --build` in promethai directory. Open your browser and go to `localhost:3000` to see promethAI running.
-
-
-## What is it
-
-PromethAI is a Python-based AGI project that recommends  choices based on a user's goals and preferences and can modify its recommendations based on user feedback.
-
-Our focus is currently on food, but the system is extendible to any area.
-
-
-
-
-
 
 
 ## Resources
