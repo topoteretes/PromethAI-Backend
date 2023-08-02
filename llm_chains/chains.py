@@ -495,62 +495,70 @@ class Agent:
             assistant_category,
     ):
         """Generates an individual solution choice"""
-        # json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
-        #
-        # list_of_items = [
-        #     item for item in list_of_items if item != [base_category, base_value]
-        # ]
-        # logging.info("list of items", list_of_items)
-        # list_as_string = str(list_of_items[0]).strip("[]")
-        # # agent_summary = agent_summary.split('.', 1)[0]
-        # json_example = json_example.replace("{", "{{").replace("}", "}}")
-        # template = Template(prompt_template_base)
-        # output = template.render(
-        #     base_category=base_category,
-        #     base_value=base_value,
-        #     json_example=json_example,
-        #     assistant_category=assistant_category,
-        #     exclusion_categories=list_as_string,
-        # )
-        # complete_query = PromptTemplate.from_template(output)
-        #
-        # chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
-        # chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
-        # json_o = json.loads(chain_result)
-        # value_list = [{"category": value} for value in base_value.split(",")]
-        # # json_o["options"].append({"category": "Your preferences", "options": value_list})
-        # chain_result = json.dumps(json_o)
-        # print("FINAL CHAIN", chain_result)
-        list_of_items = str(list_of_items)
-        class Option(BaseModel):
-            category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
-            options: Optional[List] = Field([], description="Empty list")
-        class Result(BaseModel):
-            category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
-            options: List[Option] = Field(None, description="An array of option objects.")
+        json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
 
-        system_message = f"You are a world class algorithm for decomposing human " \
-                         f"thoughts into decision trees on {assistant_category}. "
-        guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. " \
-                         f"Decompose the following user request into  high level options with three sub-categories and empty associated options: "
-        prompt_msgs = [
-            SystemMessage(
-                content=system_message
-            ),
-            HumanMessage(content=guidance_query),
-            HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            HumanMessage(content=f"Tips: Must include ' {base_value} ' in the high level options as one of the sub-categories"),
-            HumanMessage(content=f"Tips: Exclude the following categories: {list_of_items}"),
+        list_of_items = [
+            item for item in list_of_items if item != [base_category, base_value]
         ]
-        prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Result, self.llm35, prompt_, verbose=True)
-        output = chain.run(input=str( base_category ))
-        # from pydantic import BaseModel, parse_raw
-        # Convert the dictionary to a Pydantic object
-        my_object = parse_obj_as(Result, output)
-        data = my_object.dict()
-        return str(data).replace("'", '"')
+        logging.info("list of items", list_of_items)
+        try:
+            list_as_string = str(list_of_items[0]).strip("[]")
+        except:
+            list_as_string = str(list_of_items)
+        # agent_summary = agent_summary.split('.', 1)[0]
+        json_example = json_example.replace("{", "{{").replace("}", "}}")
+        template = Template(prompt_template_base)
+        output = template.render(
+            base_category=base_category,
+            base_value=base_value,
+            json_example=json_example,
+            assistant_category=assistant_category,
+            exclusion_categories=list_as_string,
+        )
+        complete_query = PromptTemplate.from_template(output)
+
+        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=self.verbose)
+        chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
+        json_o = json.loads(chain_result)
+        value_list = [{"category": value} for value in base_value.split(",")]
+        # json_o["options"].append({"category": "Your preferences", "options": value_list})
+        chain_result = json.dumps(json_o)
+        print("FINAL CHAIN", chain_result)
+        return chain_result
+        # list_of_items = str(list_of_items)
+        #
+        #
+        # class Option(BaseModel):
+        #     category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
+        #     options: Optional[List] = Field(None, description="List of possible options for this category")
+        # class Result(BaseModel):
+        #     category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
+        #     options: List[Option] = Field(None, description="An array of option objects.")
+        #
+        # system_message = f"You are a world class algorithm for decomposing human " \
+        #                  f"thoughts into decision trees on {assistant_category}. "
+        # guidance_query = f"This is the decomposition request:"
+        # prompt_msgs = [
+        #     SystemMessage(
+        #         content=system_message
+        #     ),
+        #     HumanMessage(content=guidance_query),
+        #     HumanMessagePromptTemplate.from_template("{input}"),
+        #     HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
+        #     HumanMessage(content=f" Tips: Every option must contain three decomposed values"),
+        #
+        #   # HumanMessage(content=f" Tips: Provide three sub-options that further specify the particular category better including {base_value} in the answer"),
+        #     #HumanMessage(content=f"Tips: Exclude the following categories: {list_of_items}"),
+        # ]
+        # prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+        # chain = create_structured_output_chain(Result, self.llm, prompt_, verbose=True)
+        # output = chain.run(input=f"""Decompose decision point '{ base_category }' into three categories the same level as value '{base_value}'  definitely including '{base_value} ' but not including  {list_of_items}. Make sure choices further specify the  '{ base_category }' category  where AI is helping person in choosing { assistant_category }.
+        # Provide three sub-options that further specify the particular category better.""" )
+        # # from pydantic import BaseModel, parse_raw
+        # # Convert the dictionary to a Pydantic object
+        # my_object = parse_obj_as(Result, output)
+        # data = my_object.dict()
+        # return str(data).replace("'", '"')
 
     async def generate_concurrently(self, base_prompt, assistant_category):
         """Generates an async solution group"""
