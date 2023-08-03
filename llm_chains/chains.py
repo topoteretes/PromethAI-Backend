@@ -553,6 +553,7 @@ class Agent:
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
             HumanMessage(content=f"Tips: Must include the following as a category: {base_value} and exclude {list_of_items}"),
            HumanMessage(content=f" Tips: Look at this json as example: {json_example}"),
+            HumanMessage(content=f"Tips: Don't use possesive markers like: Fisherman's "),
             # HumanMessage(content=f"Tips: Exclude the following categories: {list_of_items}"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
@@ -602,6 +603,7 @@ class Agent:
         # results_list =chain_result
 
         if len(results) == 1:
+            logging.info("HERE ARE THE valid RESULTS %s", str(results))
             results_json = json.loads(results[0])
             return results_json
         else:
