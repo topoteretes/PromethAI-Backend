@@ -695,7 +695,7 @@ class Agent:
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            HumanMessage(content=f"Tips: ")
+            HumanMessage(content=f"Tips: Make sure lowest level options are an empty list ")
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
