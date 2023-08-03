@@ -557,7 +557,7 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Response, self.llm35, prompt_, verbose=True)
-        output = chain.run(input=f"""Decompose decision point '{ base_category }' into three categories with the same or lower granularity and must include '{base_value}'.
+        output = await chain.arun(input=f"""Decompose decision point '{ base_category }' into three categories with the same or lower granularity and must include '{base_value}'.
         Provide three sub-categories that specify the decision point better.""" )
         # from pydantic import BaseModel, parse_raw
         # Convert the dictionary to a Pydantic object
