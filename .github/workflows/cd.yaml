@@ -6,6 +6,8 @@ on:
       - dev
       - feature/*
     paths-ignore:
+      - 'examples/**'
+      - 'document_store/**'
       - '**.md'
 
 env:
