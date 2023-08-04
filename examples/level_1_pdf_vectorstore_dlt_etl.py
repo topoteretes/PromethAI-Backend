@@ -18,6 +18,7 @@ import uuid
 from dotenv import load_dotenv
 load_dotenv()
 from pathlib import Path
+from langchain import OpenAI, LLMMathChain
 
 embeddings = OpenAIEmbeddings()
 
@@ -45,7 +46,7 @@ def _convert_pdf_to_document(path: str = None):
         documents.append(
             Document(
                 metadata={
-                    "title": "Ticket: Public Transport",
+                    "title": "Personal Receipt",
                     "country": metadata_parts[1],
                     "year": metadata_parts[0],
                     "author": str(uuid.uuid4()),
@@ -90,23 +91,41 @@ def load_to_weaviate(document_path=None):
     return retriever.add_documents(docs)
 
 
-def get_from_weaviate(query=None, filters=None):
-    """Get documents from weaviate, pass dict as filters"""
-    """  {
-        'path': ['year'],
-        'operator': 'Equal',
-        'valueText': '2017*'     }"""
+def get_from_weaviate(query=None, path=None, operator=None, valueText=None):
+    """
+    Get documents from weaviate.
+
+    Args:
+        query (str): The query string.
+        path (list): The path for filtering, e.g., ['year'].
+        operator (str): The operator for filtering, e.g., 'Equal'.
+        valueText (str): The value for filtering, e.g., '2017*'.
+
+    Example:
+        get_from_weaviate(query="some query", path=['year'], operator='Equal', valueText='2017*')
+    """
     retriever = _init_weaviate()
 
+    # Initial retrieval without filters
     output = retriever.get_relevant_documents(
         query,
         score=True,
     )
-    if filters:
+
+    # Apply filters if provided
+    if path or operator or valueText:
+        # Create the where_filter based on provided parameters
+        where_filter = {
+            'path': path if path else [],
+            'operator': operator if operator else '',
+            'valueText': valueText if valueText else ''
+        }
+
+        # Retrieve documents with filters applied
         output = retriever.get_relevant_documents(
             query,
             score=True,
-            where_filter=filters
+            where_filter=where_filter
         )
 
     return output
@@ -163,6 +182,91 @@ def infer_schema_from_text(text: str):
         llm=llm, prompt=complete_query, verbose=True
     )
     chain_result = chain.run(prompt=text).strip()
+
+    # json_data = json.dumps(chain_result)
+    return chain_result
+
+
+def set_data_contract(data, version, date, agreement_id=None, privacy_policy=None, terms_of_service=None, format=None, schema_version=None, checksum=None, owner=None, license=None, validity_start=None, validity_end=None):
+    # Creating the generic data contract
+
+    data_contract = {
+        "version": version or "",
+        "date": date or "",
+        "agreement_id": agreement_id or "",
+        "privacy_policy": privacy_policy or "",
+        "terms_of_service": terms_of_service or "",
+        "format": format or "",
+        "schema_version": schema_version or "",
+        "checksum": checksum or "",
+        "owner": owner or "",
+        "license": license or "",
+        "validity_start": validity_start or "",
+        "validity_end": validity_end or "",
+        "properties": data  # Adding the given data under the "properties" field
+    }
+
+    data_contract["properties"] = data_contract
+
+    return data_contract
+
+def create_id_dict(memory_id=None, st_memory_id=None, buffer_id=None):
+    """
+    Create a dictionary containing IDs for memory, st_memory, and buffer.
+
+    Args:
+        memory_id (str): The Memory ID.
+        st_memory_id (str): The St_memory ID.
+        buffer_id (str): The Buffer ID.
+
+    Returns:
+        dict: A dictionary containing the IDs.
+    """
+    id_dict = {
+        "memoryID": memory_id or "",
+        "st_MemoryID": st_memory_id or "",
+        "bufferID": buffer_id or ""
+    }
+    return id_dict
+
+
+
+def init_buffer(data, version, date, memory_id=None, st_memory_id=None, buffer_id=None, agreement_id=None, privacy_policy=None, terms_of_service=None, format=None, schema_version=None, checksum=None, owner=None, license=None, validity_start=None, validity_end=None, text=None, process=None):
+    # Create ID dictionary
+    id_dict = create_id_dict(memory_id, st_memory_id, buffer_id)
+
+    # Set data contract
+    data_contract = set_data_contract(data, version, date, agreement_id, privacy_policy, terms_of_service, format, schema_version, checksum, owner, license, validity_start, validity_end)
+
+    # Add ID dictionary to properties
+    data_contract["properties"]["relations"] = id_dict
+
+    # Infer schema from text and add to properties
+    if text:
+        schema = infer_schema_from_text(text)
+        data_contract["properties"]["schema"] = schema
+
+    if process:
+        data_contract["properties"]["process"] = process
+
+
+    return data_contract
+
+
+def infer_properties_from_text(text: str):
+    """Infer schema properties from text"""
+
+    prompt_ = """ You are a json index master. Create a short JSON index containing the most important data and don't write anything else: {prompt} """
+
+    complete_query = PromptTemplate(
+    input_variables=["prompt"],
+    template=prompt_,
+)
+
+    chain = LLMChain(
+        llm=llm, prompt=complete_query, verbose=True
+    )
+    chain_result = chain.run(prompt=text).strip()
     # json_data = json.dumps(chain_result)
     return chain_result
 #
@@ -208,7 +312,37 @@ file_path = 'ticket_schema.json'
 json_schema = load_json_or_infer_schema(file_path)
 # # Here we initialize DLT pipeline and export the data to duckdb
 pipeline = dlt.pipeline(pipeline_name ="train_ticket", destination='duckdb',  dataset_name='train_ticket_data')
-output = _convert_pdf_to_document(path="../document_store/personal_receipts/2017/de/public transport/3ZCCCW.pdf")
-info = pipeline.run(data =ai_function(output[0].page_content, json_schema))
-print(info)
+
+document_paths = ["../document_store/personal_receipts/2017/de/public transport/3ZCCCW.pdf","../document_store/personal_receipts/2017/de/public transport/4GBEC9.pdf"]
+#
+# for document in document_paths:
+    # load_to_weaviate(document)
+#     output = _convert_pdf_to_document(path=document)
+#     info = pipeline.run(data =ai_function(output[0].page_content, json_schema))
+#     print(info)
+
+
+# docs_data = get_from_weaviate(query="Train", filters={
+#         'path': ['year'],
+#         'operator': 'Equal',
+#         'valueText': '2017*'     })
+
+
+#
+# print(docs_data)
+#
+# str_docs_data =str(docs_data)
+
+def higher_level_thinking():
+
+    docs_data = get_from_weaviate(query="Train", path=['year'], operator='Equal', valueText='2017*')
+    str_docs_data = str(docs_data)
+
+    llm_math = LLMMathChain.from_llm(llm, verbose=True)
+    output = llm_math.run(f"Calculate the sum of the price of the tickets from these documents: {str_docs_data}")
+    return output
+
+
+
+
 
