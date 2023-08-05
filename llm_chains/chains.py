@@ -117,7 +117,7 @@ class Agent:
         )
         self.llm_fast = ChatOpenAI(
             temperature=0.0,
-            max_tokens=1400,
+            max_tokens=700,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model4,
             cache=False,
@@ -592,15 +592,7 @@ class Agent:
             for base_category, base_value in list_of_items
         ]
         results = await asyncio.gather(*tasks)
-        # results_list = str([json.loads(result) for result in results])
-        # results = results_list.replace("{", "{{").replace("}", "}}")
-        # correction = "Correct logically and write the following json representing the decision tree: {{json_example}}. Do not write anything else."
-        # template = Template(correction)
-        # output = template.render(json_example=results)
-        # complete_query = PromptTemplate.from_template(output)
-        # chain = LLMChain(llm=self.llm, prompt=complete_query, verbose=self.verbose)
-        # chain_result = await chain.arun(prompt=complete_query)
-        # results_list =chain_result
+
 
         if len(results) == 1:
             logging.info("HERE ARE THE valid RESULTS %s", str(results))
@@ -614,20 +606,6 @@ class Agent:
                 result[result.find("{"): result.rfind("}") + 1] for result in results
             ]
             results_list = [json.loads(result) for result in results]
-
-            # def replace_underscores(data):
-            #     if isinstance(data, dict):
-            #         for key, value in data.items():
-            #             if key == "category" and isinstance(value, str):
-            #                 data[key] = value.replace("_", " ")
-            #             else:
-            #                 replace_underscores(value)
-            #     elif isinstance(data, list):
-            #         for item in data:
-            #             replace_underscores(item)
-            #
-            # replace_underscores(results_list)
-            # Put the list of results in a dictionary under the "results" key
         combined_json = {"results": results_list}
         return combined_json
 
@@ -673,6 +651,60 @@ class Agent:
 
     def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
         """Serves to generate agent goals and subgoals based on a prompt"""
+
+        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+        prompt_template = """
+           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+           Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+        bb =  """Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  """
+
+            # self.init_pinecone(index_name=self.index)
+            # try:
+            #     agent_summary = self._fetch_memories(
+            #         f"Users core summary", namespace="SUMMARY"
+            #     )
+            #     print("HERE IS THE AGENT SUMMARY", agent_summary)
+            #     agent_summary = str(agent_summary)
+            #
+            #     if (
+            #             str(agent_summary)
+            #             == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
+            #     ):
+            #         agent_summary = "None."
+            # except:
+            #     agent_summary = "None."
+            #
+            # import time
+            # start_time = time.time()
+
+            # agent_summary = agent_summary.split(".", 1)[0]
+        template = Template(prompt_template)
+        output = template.render(
+            prompt_str=prompt,
+            json_example=json_example,
+            # user_summary=agent_summary,
+            assistant_category=assistant_category,
+            # nutritional_context=test_output['answer']
+        )
+        complete_query = output
+        print("HERE IS THE COMPLETE QUERY", complete_query)
+        complete_query = PromptTemplate.from_template(complete_query)
+
+
+        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
+        chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+
+        import re
+
+        def add_space_to_camel_case(s):
+            # Check if the string contains any uppercase letters
+            if any(c.isupper() for c in s[1:]):  # We exclude the first character from the check
+                s = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
+
+            # Convert each word to title case
+            return ' '.join([word.capitalize() for word in s.split()])
+
+        chain_result= add_space_to_camel_case(chain_result)
         class Option(BaseModel):
             category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
             options: Optional[List] = Field([], description="Empty list")
@@ -686,10 +718,12 @@ class Agent:
         class Main(BaseModel):
             response: Response = Field(None, description="Complete decision tree response")
 
-        system_message = f"You are a world class algorithm for decomposing human " \
-                         f"thoughts into decision trees on {assistant_category}. "
-        guidance_query = f"Decompose human thoughts into decision trees on {assistant_category}. " \
-                         f"Decompose the following user request:"
+        system_message = f"You are a world class algorithm applying raw output to a schema " \
+                         # f" into decision trees on {assistant_category}. "
+        # guidance_query = f"Decompose sentences into decision trees on {assistant_category}. " \
+        #                  f"Decompose the following statement:"
+
+        guidance_query = f"Apply output and change it to a schema"
         prompt_msgs = [
             SystemMessage(
                 content=system_message
@@ -702,7 +736,7 @@ class Agent:
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = chain.run(input=prompt)
+        output = chain.run(input=chain_result)
         # from pydantic import BaseModel, parse_raw
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
@@ -721,26 +755,26 @@ class Agent:
     #         index_name=self.index, embedding=OpenAIEmbeddings(), namespace="NUTRITION_RESOURCE"
     #     )
     #     retriever = vectorstore.as_retriever()
-    #
-    #     template = """
-    #        {summaries}
-    #        {question}
-    #        """
-    #
-    #     chain = RetrievalQAWithSourcesChain.from_chain_type(
-    #         llm=OpenAI(temperature=0),
-    #         chain_type="stuff",
-    #         retriever=retriever,
-    #         chain_type_kwargs={
-    #             "prompt": PromptTemplate(
-    #                 template=template,
-    #                 input_variables=["summaries", "question"],
-    #             ),
-    #         },
-    #     )
-    #     test_output = chain(
-    #         "Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
-    #     print("TEST OUTPUT", test_output['answer'])
+    #     #
+    #     # template = """
+    #     #    {summaries}
+    #     #    {question}
+    #     #    """
+    #     #
+    #     # chain = RetrievalQAWithSourcesChain.from_chain_type(
+    #     #     llm=OpenAI(temperature=0),
+    #     #     chain_type="stuff",
+    #     #     retriever=retriever,
+    #     #     chain_type_kwargs={
+    #     #         "prompt": PromptTemplate(
+    #     #             template=template,
+    #     #             input_variables=["summaries", "question"],
+    #     #         ),
+    #     #     },
+    #     # )
+    #     # test_output = chain(
+    #     #     "Retireve and summarize releavant information from the following document. Turn it into into decision tree that take into account user summary information and related to food. Present answer in one line summary")
+    #     # print("TEST OUTPUT", test_output['answer'])
     #
     #     # prompt_template = """Retireve and summarize releavant information from the following document
     #     #
@@ -794,7 +828,7 @@ class Agent:
     #         json_example=json_example,
     #         user_summary=agent_summary,
     #         assistant_category=assistant_category,
-    #         nutritional_context=test_output['answer']
+    #         # nutritional_context=test_output['answer']
     #     )
     #     complete_query = output
     #     print("HERE IS THE COMPLETE QUERY", complete_query)
