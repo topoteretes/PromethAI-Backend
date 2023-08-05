@@ -654,7 +654,7 @@ class Agent:
 
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """
-           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}.
+           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}. Do not include budget, meal type, intake, personality, user summary, personal preferences.
            Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
         bb =  """Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  """
 
