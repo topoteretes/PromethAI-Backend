@@ -109,7 +109,7 @@ class Agent:
             cache=False,
         )
         self.llm35_fast = ChatOpenAI(
-            temperature=0.0,
+            temperature=0.2,
             max_tokens=550,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
@@ -442,18 +442,19 @@ class Agent:
                                        model_speed: str = None):
         """Generates a single recipe solution and returns the recipe title as a string."""
 
-        prompt_ = """ You are a cooking expert. Create a very short recipe suggestion title based on user prompt: {{prompt}} """
+        prompt_ = """Suggest a concise recipe name that is based on user prompt: {{prompt}} No marketing fluff. Do not embelish"""
 
         template = Template(prompt_)
         output = template.render(prompt=prompt)
         complete_query = PromptTemplate.from_template(output)
 
         chain = LLMChain(
-            llm=self.llm, prompt=complete_query, verbose=self.verbose
+            llm=self.llm35_fast, prompt=complete_query, verbose=self.verbose
         )
-        chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+        chain_result = await chain.arun(prompt=complete_query, name=self.user_id)
+        logging.info("Here is the chain result ",chain_result)
         # json_data = json.dumps(chain_result)
-        return chain_result
+        return str(chain_result)
 
         # if model_speed == "fast":
         #     output = self.replicate_llm(output)

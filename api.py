@@ -183,7 +183,7 @@ async def prompt_to_correct_grammar(request_data: Payload) -> dict:
 #     return JSONResponse(content={"response": outcome})
 
 
-@app.post("/prompt-to-choose-meal-tree", response_model=dict, dependencies=[Depends(auth)])
+@app.post("/prompt-to-choose-meal-tree", response_model=dict,dependencies=[Depends(auth)])
 async def prompt_to_choose_meal_tree(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
@@ -410,7 +410,7 @@ async def solution_name_request(request_data: Payload) -> dict:
 
     output = await agent.solution_name_generation(json_payload["prompt"], model_speed="slow", prompt_template=None, json_example=None)
 
-    return JSONResponse(content={"response": json.loads(output)})
+    return JSONResponse(content={"response": output})
 
 
 # @app.post("/restaurant-request", response_model=dict)
