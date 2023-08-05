@@ -497,9 +497,9 @@ class Agent:
         """Generates an individual solution choice"""
         json_example = """ {"category":"time","options":[{"category":"quick","options":[{"category":"1 min"},{"category":"10 mins"},{"category":"30 mins"}]},{"category":"slow","options":[{"category":"60 mins"},{"category":"120 mins"},{"category":"180 mins"}]}]}"""
         #
-        # list_of_items = [
-        #     item for item in list_of_items if item != [base_category, base_value]
-        # ]
+        list_of_items = [
+            item for item in list_of_items if item != [base_category, base_value]
+        ]
         # logging.info("list of items", list_of_items)
         # try:
         #     list_as_string = str(list_of_items[0]).strip("[]")
@@ -552,8 +552,8 @@ class Agent:
             HumanMessagePromptTemplate.from_template("{input}"),
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
             HumanMessage(content=f"Tips: Must include the following as a category: {base_value} and exclude {list_of_items}"),
-           HumanMessage(content=f" Tips: Look at this json as example: {json_example}"),
-            HumanMessage(content=f"Tips: Don't use possesive markers like: Fisherman's "),
+            HumanMessage(content=f" Tips: Look at this json as example: {json_example}"),
+            HumanMessage(content=f"Tips: Escape possesive apostrophes with a backslash, e.g., 'John\\'s' "),
             # HumanMessage(content=f"Tips: Exclude the following categories: {list_of_items}"),
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
@@ -604,8 +604,8 @@ class Agent:
 
         if len(results) == 1:
             logging.info("HERE ARE THE valid RESULTS %s", str(results))
-            results_json = json.loads(results[0])
-            return results_json
+            results_list = json.loads(results[0])
+
         else:
             logging.info("HERE ARE THE valid RESULTS %s", len(results))
             print("HERE ARE THE valid RESULTS %s", len(results))
@@ -615,21 +615,21 @@ class Agent:
             ]
             results_list = [json.loads(result) for result in results]
 
-            def replace_underscores(data):
-                if isinstance(data, dict):
-                    for key, value in data.items():
-                        if key == "category" and isinstance(value, str):
-                            data[key] = value.replace("_", " ")
-                        else:
-                            replace_underscores(value)
-                elif isinstance(data, list):
-                    for item in data:
-                        replace_underscores(item)
-
-            replace_underscores(results_list)
+            # def replace_underscores(data):
+            #     if isinstance(data, dict):
+            #         for key, value in data.items():
+            #             if key == "category" and isinstance(value, str):
+            #                 data[key] = value.replace("_", " ")
+            #             else:
+            #                 replace_underscores(value)
+            #     elif isinstance(data, list):
+            #         for item in data:
+            #             replace_underscores(item)
+            #
+            # replace_underscores(results_list)
             # Put the list of results in a dictionary under the "results" key
-            combined_json = {"results": results_list}
-            return combined_json
+        combined_json = {"results": results_list}
+        return combined_json
 
     def _loader(self, path: str, namespace: str):
 
@@ -697,7 +697,8 @@ class Agent:
             HumanMessage(content=guidance_query),
             HumanMessagePromptTemplate.from_template("{input}"),
             HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            HumanMessage(content=f"Tips: Make sure lowest level options are an empty list ")
+            HumanMessage(content=f"Tips: Make sure lowest level options are an empty list "),
+            HumanMessage(content=f"Tips: Make sure results have multiple categories on the same level ")
         ]
         prompt_ = ChatPromptTemplate(messages=prompt_msgs)
         chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
@@ -706,6 +707,7 @@ class Agent:
         # Convert the dictionary to a Pydantic object
         my_object = parse_obj_as(Main, output)
         data = my_object.dict()
+        logging.info("HERE IS THE inter RESULT", str(data).replace("'", '"'))
         print("HERE IS THE DICT", data)
         data_pr = self._process_pref(data)
         logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
