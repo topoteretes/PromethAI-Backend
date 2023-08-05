@@ -1,0 +1,192 @@
+{
+        "results": [
+            {
+                "category": "cuisine",
+                "options": [
+                    {
+                        "category": "Asian",
+                        "options": [
+                            {
+                                "category": "Chinese"
+                            },
+                            {
+                                "category": "Japanese"
+                            },
+                            {
+                                "category": "Korean"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "European",
+                        "options": [
+                            {
+                                "category": "Italian"
+                            },
+                            {
+                                "category": "French"
+                            },
+                            {
+                                "category": "Spanish"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Middle Eastern",
+                        "options": [
+                            {
+                                "category": "Lebanese"
+                            },
+                            {
+                                "category": "Turkish"
+                            },
+                            {
+                                "category": "Persian"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "category": "Food Type",
+                "options": [
+                    {
+                        "category": "chicken",
+                        "options": [
+                            {
+                                "category": "grilled"
+                            },
+                            {
+                                "category": "fried"
+                            },
+                            {
+                                "category": "roasted"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "beef",
+                        "options": [
+                            {
+                                "category": "steak"
+                            },
+                            {
+                                "category": "burger"
+                            },
+                            {
+                                "category": "meatballs"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "vegetarian",
+                        "options": [
+                            {
+                                "category": "salad"
+                            },
+                            {
+                                "category": "pasta"
+                            },
+                            {
+                                "category": "stir-fry"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "category": "Speed",
+                "options": [
+                    {
+                        "category": "quick",
+                        "options": [
+                            {
+                                "category": "1 min"
+                            },
+                            {
+                                "category": "5 mins"
+                            },
+                            {
+                                "category": "10 mins"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "moderate",
+                        "options": [
+                            {
+                                "category": "15 mins"
+                            },
+                            {
+                                "category": "20 mins"
+                            },
+                            {
+                                "category": "30 mins"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "slow",
+                        "options": [
+                            {
+                                "category": "45 mins"
+                            },
+                            {
+                                "category": "1 hour"
+                            },
+                            {
+                                "category": "2 hours"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "category": "Flavour",
+                "options": [
+                    {
+                        "category": "Tasty",
+                        "options": [
+                            {
+                                "category": "Sweet"
+                            },
+                            {
+                                "category": "Savory"
+                            },
+                            {
+                                "category": "Spicy"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Not Tasty",
+                        "options": [
+                            {
+                                "category": "Bland"
+                            },
+                            {
+                                "category": "Sour"
+                            },
+                            {
+                                "category": "Bitter"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Neutral",
+                        "options": [
+                            {
+                                "category": "Mild"
+                            },
+                            {
+                                "category": "Plain"
+                            },
+                            {
+                                "category": "Subtle"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }

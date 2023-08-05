@@ -21,6 +21,7 @@ from langchain.chains.openai_functions import (
 )
 from langchain.schema import HumanMessage, SystemMessage
 import os
+import fastjsonschema
 
 import json
 from langchain.tools import GooglePlacesTool
@@ -608,7 +609,27 @@ class Agent:
             ]
             results_list = [json.loads(result) for result in results]
         combined_json = {"results": results_list}
-        return combined_json
+
+        def load_schema(filepath):
+            with open(filepath, 'r') as f:
+                return json.load(f)
+
+        try:
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
+                                       'decompose_categories.json')
+            primary_schema = load_schema(schema_path)
+            validate = fastjsonschema.compile(primary_schema)
+            logging.info("HERE SOME RESULTS %s", str({"response":combined_json}))
+            validate({"response":combined_json})
+            return combined_json
+        except fastjsonschema.exceptions.JsonSchemaException as e:
+            logging.info("HERE ARE THE  ERRORS %s", str(e))
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
+                                       'categories_defaults.json')
+            combined_json = load_schema(schema_path)
+            return combined_json
+
+        # return combined_json
 
     def _loader(self, path: str, namespace: str):
 
