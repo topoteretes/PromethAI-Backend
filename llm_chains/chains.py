@@ -442,7 +442,7 @@ class Agent:
                                        model_speed: str = None):
         """Generates a single recipe solution and returns the recipe title as a string."""
 
-        prompt_ = """Suggest a concise recipe name that is based on user prompt: {{prompt}} No marketing fluff. Do not embelish"""
+        prompt_ = """Create a food recipe based on the following prompt: {{prompt}} Return just a concise recipe title. Do not explain or write anything else."""
 
         template = Template(prompt_)
         output = template.render(prompt=prompt)
