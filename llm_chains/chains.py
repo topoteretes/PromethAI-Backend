@@ -48,7 +48,7 @@ import os
 
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 # from langchain import llm_cache
 
 

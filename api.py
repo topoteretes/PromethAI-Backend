@@ -12,6 +12,7 @@ from fastapi import Request
 import yaml
 from fastapi import HTTPException
 CANNED_RESPONSES = False
+logging.basicConfig(level=logging.INFO)
 
 # Set up logging
 logging.basicConfig(
@@ -284,8 +285,8 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
         model_speed=json_payload["model_speed"],
         load_defaults=user_defaults
     )
+    logging.info("Prompt to decompose meal tree categories %s", str(output))
     if user_defaults:
-
         return  output
     else:
         return JSONResponse(content={"response": output})
