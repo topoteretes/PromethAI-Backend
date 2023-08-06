@@ -1,90 +1,62 @@
+
 {
     "response": {
         "results": [
             {
-                "category": "Cuisine",
+                "category": "Nutritional Content",
                 "options": [
                     {
-                        "category": "Mexican",
-                        "options": []
+                        "category": "High Protein",
+                        "options": [
+                            {
+                                "category": "Animal Source"
+                            },
+                            {
+                                "category": "Plant Source"
+                            },
+                            {
+                                "category": "Supplement"
+                            }
+                        ]
                     }
-                ],
-                "preference": [
-                    "Mexican"
                 ]
             },
             {
-                "category": "Dish Type",
+                "category": "Cuisine and Flavor Profile",
                 "options": [
                     {
-                        "category": "Pasta",
-                        "options": []
+                        "category": "Famous Cuisine",
+                        "options": [
+                            {
+                                "category": "Chinese"
+                            },
+                            {
+                                "category": "Japanese"
+                            },
+                            {
+                                "category": "French"
+                            }
+                        ]
                     }
-                ],
-                "preference": [
-                    "Pasta"
                 ]
             },
-            {
-                "category": "Dietary Preference",
-                "options": [
-                    {
-                        "category": "Vegetarian",
-                        "options": []
-                    }
-                ],
-                "preference": [
-                    "Vegetarian"
-                ]
-            },
-            {
-                "category": "Seafood",
-                "options": [
-                    {
-                        "category": "No",
-                        "options": []
-                    }
-                ],
-                "preference": [
-                    "No"
-                ]
-            },
-            {
-                "category": "Cooking Time",
-                "options": [
-                    {
-                        "category": "Quick",
-                        "options": []
-                    }
-                ],
-                "preference": [
-                    "Quick"
-                ]
-            },
-            {
-                "category": "Taste",
-                "options": [
-                    {
-                        "category": "Tasty",
-                        "options": []
-                    }
-                ],
-                "preference": [
-                    "Tasty"
-                ]
-            },
-            {
-                "category": "Spiciness",
-                "options": [
-                    {
-                        "category": "Spicy",
-                        "options": []
-                    }
-                ],
-                "preference": [
-                    "Spicy"
-                ]
-            }
+          {
+    "category": "Allergies",
+    "options": [
+        {
+            "category": "Dairy",
+            "options": [
+                {
+                    "category": "Milk"
+                },
+                {
+                    "category": "Cheese"
+                },
+                {
+                    "category": "Butter"
+                }
+            ]
+        }]}
         ]
     }
 }

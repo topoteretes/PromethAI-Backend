@@ -370,7 +370,7 @@ class Agent:
     def prompt_correction(self, prompt_source: str, model_speed: str):
         """Makes the prompt gramatically correct"""
 
-        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Dishes should not be a cuisine """
+        prompt = """ Gramatically and logically correct sentence: {{prompt_source}} . Return only the corrected sentence, no abbreviations, using same words if it is logical. Do not mention explicitly rules given in prompt. """
         template = Template(prompt)
         output = template.render(prompt_source=prompt_source)
         complete_query = PromptTemplate.from_template(output)
@@ -568,81 +568,88 @@ class Agent:
         data = my_object.dict()
         return str(data).replace("'", '"')
 
-    async def generate_concurrently(self, base_prompt, assistant_category):
+    async def generate_concurrently(self, base_prompt, assistant_category,load_defaults=True):
         """Generates an async solution group"""
-        list_of_items = [item.split("=") for item in base_prompt.split(";")]
-        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}'  definitely including '{{base_value}} ' but not including  {{exclusion_categories}}. Make sure choices further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
-        Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
-        list_of_items = base_prompt.split(";")
-
-        # If there is no ';', split on '=' instead
-        if len(list_of_items) == 1:
-            list_of_items = [list_of_items[0].split("=")]
-        else:
-            list_of_items = [item.split("=") for item in list_of_items]
-            # Remove  value
-            print("LIST OF ITEMS", list_of_items)
-            logging.info("LIST OF ITEMS", str(list_of_items))
-        tasks = [
-            self.async_generate(
-                prompt_template_base,
-                base_category,
-                base_value,
-                list_of_items,
-                assistant_category,
-            )
-            for base_category, base_value in list_of_items
-        ]
-        results = await asyncio.gather(*tasks)
-
-        def replace_underscores(data):
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    if key == "category" and isinstance(value, str):
-                        data[key] = value.replace("_", " ")
-                    else:
-                        replace_underscores(value)
-            elif isinstance(data, list):
-                for item in data:
-                    replace_underscores(item)
-
-
-
-
-        if len(results) == 1:
-            logging.info("HERE ARE THE valid RESULTS %s", str(results))
-            results_list = [json.loads(results[0])]
-
-        else:
-            logging.info("HERE ARE THE valid RESULTS %s", len(results))
-            print("HERE ARE THE valid RESULTS %s", len(results))
-            # Parse each JSON string and add it to a list
-            results = [
-                result[result.find("{"): result.rfind("}") + 1] for result in results
-            ]
-            results_list = [json.loads(result) for result in results]
-
-        replace_underscores(results_list)
-        combined_json = {"results": results_list}
-
         def load_schema(filepath):
             with open(filepath, 'r') as f:
                 return json.load(f)
 
-        try:
-            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
-                                       'decompose_categories.json')
-            primary_schema = load_schema(schema_path)
-            validate = fastjsonschema.compile(primary_schema)
-            logging.info("HERE SOME RESULTS %s", str({"response":combined_json}))
-            validate({"response":combined_json})
-            return combined_json
-        except fastjsonschema.exceptions.JsonSchemaException as e:
-            logging.info("HERE ARE THE  ERRORS %s", str(e))
+        if load_defaults:
             schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
                                        'categories_defaults.json')
             combined_json = load_schema(schema_path)
             return combined_json
+        else:
+            list_of_items = [item.split("=") for item in base_prompt.split(";")]
+            prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}'  definitely including '{{base_value}} ' but not including  {{exclusion_categories}}. Make sure choices further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+            Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
+            list_of_items = base_prompt.split(";")
+
+            # If there is no ';', split on '=' instead
+            if len(list_of_items) == 1:
+                list_of_items = [list_of_items[0].split("=")]
+            else:
+                list_of_items = [item.split("=") for item in list_of_items]
+                # Remove  value
+                print("LIST OF ITEMS", list_of_items)
+                logging.info("LIST OF ITEMS", str(list_of_items))
+            tasks = [
+                self.async_generate(
+                    prompt_template_base,
+                    base_category,
+                    base_value,
+                    list_of_items,
+                    assistant_category,
+                )
+                for base_category, base_value in list_of_items
+            ]
+            results = await asyncio.gather(*tasks)
+
+            def replace_underscores(data):
+                if isinstance(data, dict):
+                    for key, value in data.items():
+                        if key == "category" and isinstance(value, str):
+                            data[key] = value.replace("_", " ")
+                        else:
+                            replace_underscores(value)
+                elif isinstance(data, list):
+                    for item in data:
+                        replace_underscores(item)
+
+
+
+
+            if len(results) == 1:
+                logging.info("HERE ARE THE valid RESULTS %s", str(results))
+                results_list = [json.loads(results[0])]
+
+            else:
+                logging.info("HERE ARE THE valid RESULTS %s", len(results))
+                print("HERE ARE THE valid RESULTS %s", len(results))
+                # Parse each JSON string and add it to a list
+                results = [
+                    result[result.find("{"): result.rfind("}") + 1] for result in results
+                ]
+                results_list = [json.loads(result) for result in results]
+
+            replace_underscores(results_list)
+            combined_json = {"results": results_list}
+
+
+            try:
+                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
+                                           'decompose_categories.json')
+                primary_schema = load_schema(schema_path)
+                validate = fastjsonschema.compile(primary_schema)
+                logging.info("HERE SOME RESULTS %s", str({"response":combined_json}))
+                validate({"response":combined_json})
+                return combined_json
+            except fastjsonschema.exceptions.JsonSchemaException as e:
+                logging.info("HERE ARE THE  ERRORS %s", str(e))
+                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
+                                           'categories_defaults.json')
+                combined_json = load_schema(schema_path)
+                return combined_json
 
 
 
@@ -686,127 +693,136 @@ class Agent:
 
         # Assuming you have the JSON data in the "data" variable
 
-    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
+    def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str, load_defaults: bool = True):
         """Serves to generate agent goals and subgoals based on a prompt"""
 
-        json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
-        prompt_template = """
-           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}. There should be three categories and one decision for each.  Do not include budget, meal type, intake, personality, user summary, personal preferences.
-           Decision should be one user can make in regards to {{ assistant_category }}. Present answer in one line and in property structure : {{json_example}}"""
-        bb =  """Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  """
-
-            # self.init_pinecone(index_name=self.index)
-            # try:
-            #     agent_summary = self._fetch_memories(
-            #         f"Users core summary", namespace="SUMMARY"
-            #     )
-            #     print("HERE IS THE AGENT SUMMARY", agent_summary)
-            #     agent_summary = str(agent_summary)
-            #
-            #     if (
-            #             str(agent_summary)
-            #             == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
-            #     ):
-            #         agent_summary = "None."
-            # except:
-            #     agent_summary = "None."
-            #
-            # import time
-            # start_time = time.time()
-
-            # agent_summary = agent_summary.split(".", 1)[0]
-        template = Template(prompt_template)
-        output = template.render(
-            prompt_str=prompt,
-            json_example=json_example,
-            # user_summary=agent_summary,
-            assistant_category=assistant_category,
-            # nutritional_context=test_output['answer']
-        )
-        complete_query = output
-        print("HERE IS THE COMPLETE QUERY", complete_query)
-        complete_query = PromptTemplate.from_template(complete_query)
-
-
-        chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
-        chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
-
-        import re
-
-        def add_space_to_camel_case(s):
-            # Check if the string contains any uppercase letters
-            if any(c.isupper() for c in s[1:]):  # We exclude the first character from the check
-                s = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
-
-            # Convert each word to title case
-            return ' '.join([word.capitalize() for word in s.split()])
-
-        chain_result= add_space_to_camel_case(chain_result)
-        class Option(BaseModel):
-            category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
-            options: Optional[List] = Field([], description="Empty list")
-        class Result(BaseModel):
-            category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
-            options: List[Option] = Field(None, description="An array of option objects.")
-            preference: Optional[List] = Field([], description="Value of the first category")
-        class Response(BaseModel):
-            results: List[Result] = Field(None, description="List of the results of the decision tree")
-
-        class Main(BaseModel):
-            response: Response = Field(None, description="Complete decision tree response")
-
-        system_message = f"You are a world class algorithm applying raw output to a schema " \
-                         # f" into decision trees on {assistant_category}. "
-        # guidance_query = f"Decompose sentences into decision trees on {assistant_category}. " \
-        #                  f"Decompose the following statement:"
-
-        guidance_query = f"Apply output and change it to a schema"
-        prompt_msgs = [
-            SystemMessage(
-                content=system_message
-            ),
-            HumanMessage(content=guidance_query),
-            HumanMessagePromptTemplate.from_template("{input}"),
-            HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
-            HumanMessage(content=f"Tips: Make sure lowest level options are an empty list "),
-            HumanMessage(content=f"Tips: Make sure results have multiple categories on the same level ")
-        ]
-        prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-        chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
-        output = chain.run(input=chain_result)
-        # from pydantic import BaseModel, parse_raw
-        # Convert the dictionary to a Pydantic object
-        my_object = parse_obj_as(Main, output)
-        data = my_object.dict()
-        logging.info("HERE IS THE inter RESULT", str(data).replace("'", '"'))
-        print("HERE IS THE DICT", data)
-        data_pr = self._process_pref(data)
-        logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
-        combined_json = data_pr
-        # combined_json = str(data_pr).replace("'", '"')
 
         def load_schema(filepath):
             with open(filepath, 'r') as f:
                 return json.load(f)
 
-        try:
-
-            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
-                                       'decompose_categories_input.json')
-            primary_schema = load_schema(schema_path)
-            validate = fastjsonschema.compile(primary_schema)
-            logging.info("HERE SOME RESULTS %s", str(combined_json))
-            try:
-                validate(combined_json)
-            except:
-                validate(json.loads(combined_json))
-            return str(combined_json).replace("'", '"')
-        except:
-            # logging.info("HERE ARE THE  ERRORS %s", str(e))
+        if load_defaults:
             schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
                                        'categories_input_defaults.json')
             combined_json = json.dumps(load_schema(schema_path))
             return combined_json
+        else:
+            json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
+            prompt_template = """
+               Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}. There should be three categories and one decision for each.  
+               Categories should be logical and user friendly. Do not include budget, meal type, intake, personality, user summary, personal preferences.
+               Decision should be one user can make in regards to {{ assistant_category }}. Present answer in one line and in property structure : {{json_example}}"""
+            bb =  """Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  """
+
+                # self.init_pinecone(index_name=self.index)
+                # try:
+                #     agent_summary = self._fetch_memories(
+                #         f"Users core summary", namespace="SUMMARY"
+                #     )
+                #     print("HERE IS THE AGENT SUMMARY", agent_summary)
+                #     agent_summary = str(agent_summary)
+                #
+                #     if (
+                #             str(agent_summary)
+                #             == "{'error': 'No document found for this user. Make sure that a query is appropriate'}"
+                #     ):
+                #         agent_summary = "None."
+                # except:
+                #     agent_summary = "None."
+                #
+                # import time
+                # start_time = time.time()
+
+                # agent_summary = agent_summary.split(".", 1)[0]
+            template = Template(prompt_template)
+            output = template.render(
+                prompt_str=prompt,
+                json_example=json_example,
+                # user_summary=agent_summary,
+                assistant_category=assistant_category,
+                # nutritional_context=test_output['answer']
+            )
+            complete_query = output
+            print("HERE IS THE COMPLETE QUERY", complete_query)
+            complete_query = PromptTemplate.from_template(complete_query)
+
+
+            chain = LLMChain(llm=self.llm_fast, prompt=complete_query, verbose=False)
+            chain_result = chain.run(prompt=complete_query, name=self.user_id).strip()
+
+            import re
+
+            def add_space_to_camel_case(s):
+                # Check if the string contains any uppercase letters
+                if any(c.isupper() for c in s[1:]):  # We exclude the first character from the check
+                    s = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
+
+                # Convert each word to title case
+                return ' '.join([word.capitalize() for word in s.split()])
+
+            chain_result= add_space_to_camel_case(chain_result)
+            class Option(BaseModel):
+                category: str = Field(..., description=" Each should have a 'category' (a specific choice like 'Under $25' or 'Red')")
+                options: Optional[List] = Field([], description="Empty list")
+            class Result(BaseModel):
+                category: str = Field(None, description=" Specify the main classification (e.g., Price Range, Color, Size) in the 'category' field.")
+                options: List[Option] = Field(None, description="An array of option objects.")
+                preference: Optional[List] = Field([], description="Value of the first category")
+            class Response(BaseModel):
+                results: List[Result] = Field(None, description="List of the results of the decision tree")
+
+            class Main(BaseModel):
+                response: Response = Field(None, description="Complete decision tree response")
+
+            system_message = f"You are a world class algorithm applying raw output to a schema " \
+                             # f" into decision trees on {assistant_category}. "
+            # guidance_query = f"Decompose sentences into decision trees on {assistant_category}. " \
+            #                  f"Decompose the following statement:"
+
+            guidance_query = f"Apply output and change it to a schema"
+            prompt_msgs = [
+                SystemMessage(
+                    content=system_message
+                ),
+                HumanMessage(content=guidance_query),
+                HumanMessagePromptTemplate.from_template("{input}"),
+                HumanMessage(content=f"Tips: Make sure to answer in the correct format"),
+                HumanMessage(content=f"Tips: Make sure lowest level options are an empty list "),
+                HumanMessage(content=f"Tips: Make sure results have multiple categories on the same level ")
+            ]
+            prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+            chain = create_structured_output_chain(Main, self.llm35, prompt_, verbose=True)
+            output = chain.run(input=chain_result)
+            # from pydantic import BaseModel, parse_raw
+            # Convert the dictionary to a Pydantic object
+            my_object = parse_obj_as(Main, output)
+            data = my_object.dict()
+            logging.info("HERE IS THE inter RESULT", str(data).replace("'", '"'))
+            print("HERE IS THE DICT", data)
+            data_pr = self._process_pref(data)
+            logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
+            combined_json = data_pr
+            # combined_json = str(data_pr).replace("'", '"')
+
+
+            try:
+
+                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
+                                           'decompose_categories_input.json')
+                primary_schema = load_schema(schema_path)
+                validate = fastjsonschema.compile(primary_schema)
+                logging.info("HERE SOME RESULTS %s", str(combined_json))
+                try:
+                    validate(combined_json)
+                except:
+                    validate(json.loads(combined_json))
+                return str(combined_json).replace("'", '"')
+            except:
+                # logging.info("HERE ARE THE  ERRORS %s", str(e))
+                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
+                                           'categories_input_defaults.json')
+                combined_json = json.dumps(load_schema(schema_path))
+                return combined_json
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
     #     """Serves to generate agent goals and subgoals based on a prompt"""
@@ -926,10 +942,10 @@ class Agent:
     #     return chain_result.replace("'", '"')
 
     async def prompt_decompose_to_tree_categories(
-            self, prompt: str, assistant_category, model_speed: str
+            self, prompt: str, assistant_category, model_speed: str, load_defaults: bool=True
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        combined_json = await self.generate_concurrently(prompt, assistant_category)
+        combined_json = await self.generate_concurrently(prompt, assistant_category, load_defaults=load_defaults)
         return combined_json
         # async for result in self.generate_concurrently(prompt):
         #     yield result
