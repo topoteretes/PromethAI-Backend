@@ -273,7 +273,7 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
     import time
 
     # Wait for 0.5 seconds
-    time.sleep(3.5)
+    time.sleep(3.4)
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
 
