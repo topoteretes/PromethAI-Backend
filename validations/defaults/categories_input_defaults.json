@@ -17,12 +17,15 @@
                             {
                                 "category": "Supplement"
                             }
-                        ]
+                        ],
+                "preference": [
+                    "Animal Source"
+                ]
                     }
                 ]
             },
             {
-                "category": "Cuisine and Flavor Profile",
+                "category": "Cuisine",
                 "options": [
                     {
                         "category": "Famous Cuisine",
@@ -38,6 +41,9 @@
                             }
                         ]
                     }
+                ],
+                "preference": [
+                    "Famous Cuisine"
                 ]
             },
           {
@@ -57,6 +63,9 @@
                 }
             ]
         }]}
-        ]
+        ],
+                "preference": [
+                    "Dairy"
+                ]
     }
 }
