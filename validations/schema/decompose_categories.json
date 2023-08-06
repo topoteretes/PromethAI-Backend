@@ -6,7 +6,10 @@
             "type": "object",
             "properties": {
                 "results": {
-                    "$ref": "#/definitions/option"
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/option"
+                    }
                 }
             },
             "required": ["results"]

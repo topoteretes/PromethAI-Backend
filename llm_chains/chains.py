@@ -595,10 +595,23 @@ class Agent:
         ]
         results = await asyncio.gather(*tasks)
 
+        def replace_underscores(data):
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if key == "category" and isinstance(value, str):
+                        data[key] = value.replace("_", " ")
+                    else:
+                        replace_underscores(value)
+            elif isinstance(data, list):
+                for item in data:
+                    replace_underscores(item)
+
+
+
 
         if len(results) == 1:
             logging.info("HERE ARE THE valid RESULTS %s", str(results))
-            results_list = json.loads(results[0])
+            results_list = [json.loads(results[0])]
 
         else:
             logging.info("HERE ARE THE valid RESULTS %s", len(results))
@@ -608,6 +621,8 @@ class Agent:
                 result[result.find("{"): result.rfind("}") + 1] for result in results
             ]
             results_list = [json.loads(result) for result in results]
+
+        replace_underscores(results_list)
         combined_json = {"results": results_list}
 
         def load_schema(filepath):
@@ -629,7 +644,7 @@ class Agent:
             combined_json = load_schema(schema_path)
             return combined_json
 
-        # return combined_json
+
 
     def _loader(self, path: str, namespace: str):
 
@@ -676,8 +691,8 @@ class Agent:
 
         json_example = """ <category1>=<decision1>;<category2>=<decision2>..."""
         prompt_template = """
-           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}. Do not include budget, meal type, intake, personality, user summary, personal preferences.
-           Decision should be one user can make. Present answer in one line and in property structure : {{json_example}}"""
+           Decompose {{ prompt_str }} statement into decision tree that take into account user summary information and related to {{ assistant_category }}. There should be three categories and one decision for each.  Do not include budget, meal type, intake, personality, user summary, personal preferences.
+           Decision should be one user can make in regards to {{ assistant_category }}. Present answer in one line and in property structure : {{json_example}}"""
         bb =  """Do not include budget, meal type, intake, personality, user summary, personal preferences, or update time to categories.  """
 
             # self.init_pinecone(index_name=self.index)
@@ -767,7 +782,31 @@ class Agent:
         print("HERE IS THE DICT", data)
         data_pr = self._process_pref(data)
         logging.info("HERE IS THE FINAL RESULT", str(data_pr).replace("'", '"'))
-        return str(data_pr).replace("'", '"')
+        combined_json = data_pr
+        # combined_json = str(data_pr).replace("'", '"')
+
+        def load_schema(filepath):
+            with open(filepath, 'r') as f:
+                return json.load(f)
+
+        try:
+
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
+                                       'decompose_categories_input.json')
+            primary_schema = load_schema(schema_path)
+            validate = fastjsonschema.compile(primary_schema)
+            logging.info("HERE SOME RESULTS %s", str(combined_json))
+            try:
+                validate(combined_json)
+            except:
+                validate(json.loads(combined_json))
+            return str(combined_json).replace("'", '"')
+        except:
+            # logging.info("HERE ARE THE  ERRORS %s", str(e))
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
+                                       'categories_input_defaults.json')
+            combined_json = json.dumps(load_schema(schema_path))
+            return combined_json
 
     # def prompt_to_choose_tree(self, prompt: str, model_speed: str, assistant_category: str):
     #     """Serves to generate agent goals and subgoals based on a prompt"""

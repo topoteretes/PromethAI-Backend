@@ -1,0 +1,90 @@
+{
+    "response": {
+        "results": [
+            {
+                "category": "Cuisine",
+                "options": [
+                    {
+                        "category": "Mexican",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Mexican"
+                ]
+            },
+            {
+                "category": "Dish Type",
+                "options": [
+                    {
+                        "category": "Pasta",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Pasta"
+                ]
+            },
+            {
+                "category": "Dietary Preference",
+                "options": [
+                    {
+                        "category": "Vegetarian",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Vegetarian"
+                ]
+            },
+            {
+                "category": "Seafood",
+                "options": [
+                    {
+                        "category": "No",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "No"
+                ]
+            },
+            {
+                "category": "Cooking Time",
+                "options": [
+                    {
+                        "category": "Quick",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Quick"
+                ]
+            },
+            {
+                "category": "Taste",
+                "options": [
+                    {
+                        "category": "Tasty",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Tasty"
+                ]
+            },
+            {
+                "category": "Spiciness",
+                "options": [
+                    {
+                        "category": "Spicy",
+                        "options": []
+                    }
+                ],
+                "preference": [
+                    "Spicy"
+                ]
+            }
+        ]
+    }
+}
