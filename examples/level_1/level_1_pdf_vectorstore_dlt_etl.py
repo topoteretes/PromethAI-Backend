@@ -20,6 +20,8 @@ load_dotenv()
 from pathlib import Path
 from langchain import OpenAI, LLMMathChain
 
+import os
+
 embeddings = OpenAIEmbeddings()
 
 from deep_translator import (GoogleTranslator)
@@ -309,10 +311,6 @@ def ai_function(prompt=None, json_schema=None):
     yield output
 
 
-# # Here we initialize DLT pipeline and export the data to duckdb
-
-import os
-
 # Define a base directory if you have one; this could be the directory where your script is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -322,6 +320,7 @@ document_paths = [
 ]
 
 def higher_level_thinking():
+    """Higher level thinking function to calculate the sum of the price of the tickets from these documents"""
 
     docs_data = get_from_weaviate(query="Train", path=['year'], operator='Equal', valueText='2017*')
     str_docs_data = str(docs_data)
