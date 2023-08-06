@@ -575,86 +575,82 @@ class Agent:
 
     async def generate_concurrently(self, base_prompt, assistant_category,load_defaults=True):
         """Generates an async solution group"""
+
+
+        list_of_items = [item.split("=") for item in base_prompt.split(";")]
+        prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}'  definitely including '{{base_value}} ' but not including  {{exclusion_categories}}. Make sure choices further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
+        Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
+        list_of_items = base_prompt.split(";")
+
+        # If there is no ';', split on '=' instead
+        if len(list_of_items) == 1:
+            list_of_items = [list_of_items[0].split("=")]
+        else:
+            list_of_items = [item.split("=") for item in list_of_items]
+            # Remove  value
+            print("LIST OF ITEMS", list_of_items)
+            logging.info("LIST OF ITEMS", str(list_of_items))
+        tasks = [
+            self.async_generate(
+                prompt_template_base,
+                base_category,
+                base_value,
+                list_of_items,
+                assistant_category,
+            )
+            for base_category, base_value in list_of_items
+        ]
+        results = await asyncio.gather(*tasks)
+
+        def replace_underscores(data):
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if key == "category" and isinstance(value, str):
+                        data[key] = value.replace("_", " ")
+                    else:
+                        replace_underscores(value)
+            elif isinstance(data, list):
+                for item in data:
+                    replace_underscores(item)
+
+
+
+
+        if len(results) == 1:
+            logging.info("HERE ARE THE valid RESULTS %s", str(results))
+            results_list = [json.loads(results[0])]
+
+        else:
+            logging.info("HERE ARE THE valid RESULTS %s", len(results))
+            print("HERE ARE THE valid RESULTS %s", len(results))
+            # Parse each JSON string and add it to a list
+            results = [
+                result[result.find("{"): result.rfind("}") + 1] for result in results
+            ]
+            results_list = [json.loads(result) for result in results]
+
+        replace_underscores(results_list)
+        combined_json = {"results": results_list}
+
         def load_schema(filepath):
             with open(filepath, 'r') as f:
                 return json.load(f)
 
-        if load_defaults:
+
+        try:
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
+                                       'decompose_categories.json')
+            primary_schema = load_schema(schema_path)
+            validate = fastjsonschema.compile(primary_schema)
+            logging.info("HERE SOME RESULTS %s", str({"response":combined_json}))
+            validate({"response":combined_json})
+            return combined_json
+        except fastjsonschema.exceptions.JsonSchemaException as e:
+            logging.info("HERE ARE THE  ERRORS %s", str(e))
             schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
                                        'categories_defaults.json')
             combined_json = load_schema(schema_path)
             return combined_json
-        else:
-            list_of_items = [item.split("=") for item in base_prompt.split(";")]
-            prompt_template_base = """ Decompose decision point '{{ base_category }}' into three categories the same level as value '{{base_value}}'  definitely including '{{base_value}} ' but not including  {{exclusion_categories}}. Make sure choices further specify the  '{{ base_category }}' category  where AI is helping person in choosing {{ assistant_category }}.
-            Provide three sub-options that further specify the particular category better. Generate very short json, do not write anything besides json, follow this json property structure : {{json_example}}"""
-            list_of_items = base_prompt.split(";")
-
-            # If there is no ';', split on '=' instead
-            if len(list_of_items) == 1:
-                list_of_items = [list_of_items[0].split("=")]
-            else:
-                list_of_items = [item.split("=") for item in list_of_items]
-                # Remove  value
-                print("LIST OF ITEMS", list_of_items)
-                logging.info("LIST OF ITEMS", str(list_of_items))
-            tasks = [
-                self.async_generate(
-                    prompt_template_base,
-                    base_category,
-                    base_value,
-                    list_of_items,
-                    assistant_category,
-                )
-                for base_category, base_value in list_of_items
-            ]
-            results = await asyncio.gather(*tasks)
-
-            def replace_underscores(data):
-                if isinstance(data, dict):
-                    for key, value in data.items():
-                        if key == "category" and isinstance(value, str):
-                            data[key] = value.replace("_", " ")
-                        else:
-                            replace_underscores(value)
-                elif isinstance(data, list):
-                    for item in data:
-                        replace_underscores(item)
-
-
-
-
-            if len(results) == 1:
-                logging.info("HERE ARE THE valid RESULTS %s", str(results))
-                results_list = [json.loads(results[0])]
-
-            else:
-                logging.info("HERE ARE THE valid RESULTS %s", len(results))
-                print("HERE ARE THE valid RESULTS %s", len(results))
-                # Parse each JSON string and add it to a list
-                results = [
-                    result[result.find("{"): result.rfind("}") + 1] for result in results
-                ]
-                results_list = [json.loads(result) for result in results]
-
-            replace_underscores(results_list)
-            combined_json = {"results": results_list}
-
-
-            try:
-                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'schema',
-                                           'decompose_categories.json')
-                primary_schema = load_schema(schema_path)
-                validate = fastjsonschema.compile(primary_schema)
-                logging.info("HERE SOME RESULTS %s", str({"response":combined_json}))
-                validate({"response":combined_json})
-                return combined_json
-            except fastjsonschema.exceptions.JsonSchemaException as e:
-                logging.info("HERE ARE THE  ERRORS %s", str(e))
-                schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
-                                           'categories_defaults.json')
-                combined_json = load_schema(schema_path)
-                return combined_json
 
 
 
@@ -950,8 +946,18 @@ class Agent:
             self, prompt: str, assistant_category, model_speed: str, load_defaults: bool=True
     ):
         """Serves to generate agent goals and subgoals based on a prompt"""
-        combined_json = await self.generate_concurrently(prompt, assistant_category, load_defaults=load_defaults)
-        return combined_json
+        def load_schema(filepath):
+            with open(filepath, 'r') as f:
+                return json.load(f)
+
+        if load_defaults:
+            schema_path = os.path.join(os.path.dirname(__file__), '..', 'validations', 'defaults',
+                                       'categories_defaults.json')
+            combined_json = load_schema(schema_path)
+            return combined_json
+        else:
+            combined_json = await self.generate_concurrently(prompt, assistant_category, load_defaults=load_defaults)
+            return combined_json
         # async for result in self.generate_concurrently(prompt):
         #     yield result
 
