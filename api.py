@@ -272,11 +272,11 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
     import time
 
     # Wait for 0.5 seconds
-    time.sleep(1.5)
+    time.sleep(0.5)
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
 
 
-    user_defaults = str_to_bool(json_payload.get("user_defaults", "True"))
+    user_defaults = str_to_bool(json_payload.get("user_defaults", "False"))
     assistant_category = json_payload.get("assistant_category", "food")
     output = await agent.prompt_decompose_to_tree_categories(
         json_payload["prompt_struct"],
