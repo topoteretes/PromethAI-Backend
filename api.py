@@ -284,8 +284,11 @@ async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dic
         model_speed=json_payload["model_speed"],
         load_defaults=user_defaults
     )
+    if user_defaults:
 
-    return JSONResponse(content={"response": output})
+        return  output
+    else:
+        return JSONResponse(content={"response": output})
 
 
 @app.post("/correct-prompt-grammar", response_model=dict,dependencies=[Depends(auth)])
