@@ -183,8 +183,8 @@ def infer_schema_from_text(text: str):
     )
     chain_result = chain.run(prompt=text).strip()
 
-    # json_data = json.dumps(chain_result)
-    return chain_result
+    json_data = json.dumps(chain_result)
+    return json_data
 
 
 def set_data_contract(data, version, date, agreement_id=None, privacy_policy=None, terms_of_service=None, format=None, schema_version=None, checksum=None, owner=None, license=None, validity_start=None, validity_end=None):
@@ -206,7 +206,7 @@ def set_data_contract(data, version, date, agreement_id=None, privacy_policy=Non
         "properties": data  # Adding the given data under the "properties" field
     }
 
-    data_contract["properties"] = data_contract
+
 
     return data_contract
 
@@ -274,7 +274,7 @@ def infer_properties_from_text(text: str):
 # # print(infer_schema_from_text(output[0].page_content))
 
 
-def load_json_or_infer_schema(file_path):
+def load_json_or_infer_schema(file_path, document_path):
     """Load JSON schema from file or infer schema from text"""
     try:
         # Attempt to load the JSON file
@@ -283,7 +283,7 @@ def load_json_or_infer_schema(file_path):
         return json_schema
     except FileNotFoundError:
         # If the file doesn't exist, run the specified function
-        output = _convert_pdf_to_document(path="../document_store/personal_receipts/2017/de/public transport/3ZCCCW.pdf")
+        output = _convert_pdf_to_document(path=document_path)
         json_schema = infer_schema_from_text(output[0].page_content)
         return json_schema
 
@@ -308,30 +308,18 @@ def ai_function(prompt=None, json_schema=None):
     output = chain.run(input = prompt, llm=llm)
     yield output
 
-file_path = 'ticket_schema.json'
-json_schema = load_json_or_infer_schema(file_path)
+
 # # Here we initialize DLT pipeline and export the data to duckdb
-pipeline = dlt.pipeline(pipeline_name ="train_ticket", destination='duckdb',  dataset_name='train_ticket_data')
 
-document_paths = ["../document_store/personal_receipts/2017/de/public transport/3ZCCCW.pdf","../document_store/personal_receipts/2017/de/public transport/4GBEC9.pdf"]
-#
-# for document in document_paths:
-    # load_to_weaviate(document)
-#     output = _convert_pdf_to_document(path=document)
-#     info = pipeline.run(data =ai_function(output[0].page_content, json_schema))
-#     print(info)
+import os
 
+# Define a base directory if you have one; this could be the directory where your script is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# docs_data = get_from_weaviate(query="Train", filters={
-#         'path': ['year'],
-#         'operator': 'Equal',
-#         'valueText': '2017*'     })
-
-
-#
-# print(docs_data)
-#
-# str_docs_data =str(docs_data)
+document_paths = [
+    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "3ZCCCW.pdf"),
+    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "4GBEC9.pdf")
+]
 
 def higher_level_thinking():
 
@@ -340,7 +328,56 @@ def higher_level_thinking():
 
     llm_math = LLMMathChain.from_llm(llm, verbose=True)
     output = llm_math.run(f"Calculate the sum of the price of the tickets from these documents: {str_docs_data}")
-    return output
+
+    # data_format = init_buffer(data=output, version="0.0.1", date="2021-09-01")
+    yield output
+result_higher_level_thinking = higher_level_thinking()
+def process_higher_level_thinking(result=None):
+    data_format = init_buffer(data=result, version="0.0.1", date="2021-09-01")
+    import json
+    data_format=json.dumps(data_format)
+    yield data_format
+
+
+
+raw_loading = False
+processed_loading = True
+
+
+
+if raw_loading:
+    # the following code loads the raw document data to the vectorstore, and then runs the AI function on it
+    # the data is given structure by the AI function based on the schema
+    # it then exports the data to duckdb
+    for document in document_paths:
+        # load_to_weaviate(document)
+        file_path = os.path.join(BASE_DIR, "ticket_schema.json")
+        json_schema = load_json_or_infer_schema(file_path, document)
+        output = _convert_pdf_to_document(path=document)
+        find_data_in_store = get_from_weaviate(query="Train", path=['year'], operator='Equal', valueText='2017*')
+
+        if find_data_in_store:
+            output = find_data_in_store
+            print(output[1])
+        else:
+            load_to_weaviate(document)
+        #
+        pipeline = dlt.pipeline(pipeline_name="train_ticket", destination='duckdb', dataset_name='train_ticket_data')
+        info = pipeline.run(data=ai_function(output[0].page_content, json_schema))
+        print(info)
+elif processed_loading:
+
+    pipeline_processed = dlt.pipeline(pipeline_name="train_ticket_processed", destination='duckdb',
+                                      dataset_name='train_ticket_processed_data')
+    info = pipeline_processed.run(data=higher_level_thinking())
+    print(info)
+else:
+    pass
+
+
+
+
+
 
 
 
