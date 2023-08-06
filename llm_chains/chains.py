@@ -45,7 +45,12 @@ from langchain.llms import Replicate
 from redis import Redis
 from langchain.cache import RedisCache
 import os
+
+
+
+logging.basicConfig(level=logging.DEBUG)
 # from langchain import llm_cache
+
 
 # langchain.llm_cache = RedisCache(redis_=Redis(host="redis", port=6379, db=0))
 # logging.info("Using redis cache")
