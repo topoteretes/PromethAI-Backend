@@ -12,7 +12,7 @@ from fastapi import Request
 import yaml
 from fastapi import HTTPException
 CANNED_RESPONSES = False
-logging.basicConfig(level=logging.INFO)
+
 
 # Set up logging
 logging.basicConfig(
