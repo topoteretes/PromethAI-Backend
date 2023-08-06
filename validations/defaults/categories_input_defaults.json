@@ -1,4 +1,3 @@
-
 {
     "response": {
         "results": [
@@ -17,11 +16,11 @@
                             {
                                 "category": "Supplement"
                             }
-                        ],
-                "preference": [
-                    "High Protein"
-                ]
+                        ]
                     }
+                ],
+                "preference": [
+                    "Animal Source"
                 ]
             },
             {
@@ -46,26 +45,28 @@
                     "Famous Cuisine"
                 ]
             },
-          {
-    "category": "Allergies",
-    "options": [
-        {
-            "category": "Dairy",
-            "options": [
-                {
-                    "category": "Milk"
-                },
-                {
-                    "category": "Cheese"
-                },
-                {
-                    "category": "Butter"
-                }
-            ]
-        }]}
-        ],
+            {
+                "category": "Allergies",
+                "options": [
+                    {
+                        "category": "Dairy",
+                        "options": [
+                            {
+                                "category": "Milk"
+                            },
+                            {
+                                "category": "Cheese"
+                            },
+                            {
+                                "category": "Butter"
+                            }
+                        ]
+                    }
+                ],
                 "preference": [
                     "Dairy"
                 ]
+            }
+        ]
     }
 }
