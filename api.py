@@ -183,7 +183,7 @@ def create_endpoint(category: str, solution_type: str, prompt: str, json_example
 
 
 
-    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict,dependencies=[Depends(auth)])
+    @app.post(f"/{category}/prompt-to-decompose-categories", response_model=dict)
     async def prompt_to_decompose_categories(request_data: Payload) -> dict:
         json_payload = request_data.payload
         agent = Agent()
@@ -269,7 +269,13 @@ for role in ['assistant', 'chatbot']:
 async def prompt_to_decompose_meal_tree_categories(request_data: Payload) -> dict:
     json_payload = request_data.payload
     agent = Agent()
+    import time
+
+    # Wait for 0.5 seconds
+    time.sleep(0.5)
     agent.set_user_session(json_payload["user_id"], json_payload["session_id"])
+
+
     user_defaults = str_to_bool(json_payload.get("user_defaults", "True"))
     assistant_category = json_payload.get("assistant_category", "food")
     output = await agent.prompt_decompose_to_tree_categories(
