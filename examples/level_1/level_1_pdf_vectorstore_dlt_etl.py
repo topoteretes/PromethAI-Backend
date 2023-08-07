@@ -9,6 +9,8 @@ import weaviate
 import os
 import json
 
+import argparse
+
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers import WeaviateHybridSearchRetriever
@@ -314,10 +316,7 @@ def ai_function(prompt=None, json_schema=None):
 # Define a base directory if you have one; this could be the directory where your script is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-document_paths = [
-    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "3ZCCCW.pdf"),
-    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "4GBEC9.pdf")
-]
+
 
 def higher_level_thinking():
     """Higher level thinking function to calculate the sum of the price of the tickets from these documents"""
@@ -337,48 +336,68 @@ def process_higher_level_thinking(result=None):
     data_format=json.dumps(data_format)
     yield data_format
 
+document_paths = [
+    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "3ZCCCW.pdf"),
+    os.path.join(BASE_DIR, "personal_receipts", "2017", "de", "public_transport", "4GBEC9.pdf")
+]
 
 
-raw_loading = False
-processed_loading = True
 
+def main(raw_loading, processed_loading,document_paths):
+    BASE_DIR = os.getcwd()  # Assuming the current working directory is where the data_processing_script.py is located
 
+    def format_document_paths(base_dir, path):
+        # Split the input path and extract the elements
+        elements = path.strip("/").split("/")
 
-if raw_loading:
-    # the following code loads the raw document data to the vectorstore, and then runs the AI function on it
-    # the data is given structure by the AI function based on the schema
-    # it then exports the data to duckdb
-    for document in document_paths:
-        # load_to_weaviate(document)
-        file_path = os.path.join(BASE_DIR, "ticket_schema.json")
-        json_schema = load_json_or_infer_schema(file_path, document)
-        output = _convert_pdf_to_document(path=document)
-        find_data_in_store = get_from_weaviate(query="Train", path=['year'], operator='Equal', valueText='2017*')
+        # Construct the document_paths list
+        document_paths = [os.path.join(base_dir, *elements)]
 
-        if find_data_in_store:
-            output = find_data_in_store
-            print(output[1])
-        else:
-            load_to_weaviate(document)
-        #
-        pipeline = dlt.pipeline(pipeline_name="train_ticket", destination='duckdb', dataset_name='train_ticket_data')
-        info = pipeline.run(data=ai_function(output[0].page_content, json_schema))
+        return document_paths
+
+    document_paths_ =[format_document_paths(BASE_DIR, path) for path in document_paths][0]
+    print(document_paths)
+
+    if raw_loading:
+        for document in document_paths_:
+            file_path = os.path.join(BASE_DIR, "ticket_schema.json")
+            json_schema = load_json_or_infer_schema(file_path, document)
+            output = _convert_pdf_to_document(path=document)
+            find_data_in_store = get_from_weaviate(query="Train", path=['year'], operator='Equal', valueText='2017*')
+
+            if find_data_in_store:
+                output = find_data_in_store
+                print(output[1])
+            else:
+                load_to_weaviate(document)
+
+            pipeline = dlt.pipeline(pipeline_name="train_ticket", destination='duckdb', dataset_name='train_ticket_data')
+            info = pipeline.run(data=ai_function(output[0].page_content, json_schema))
+            print(info)
+
+    elif processed_loading:
+        pipeline_processed = dlt.pipeline(pipeline_name="train_ticket_processed", destination='duckdb',
+                                          dataset_name='train_ticket_processed_data')
+        info = pipeline_processed.run(data=higher_level_thinking())
         print(info)
-elif processed_loading:
 
-    pipeline_processed = dlt.pipeline(pipeline_name="train_ticket_processed", destination='duckdb',
-                                      dataset_name='train_ticket_processed_data')
-    info = pipeline_processed.run(data=higher_level_thinking())
-    print(info)
-else:
-    pass
+    else:
+        print("Please specify either '--raw_loading' or '--processed_loading' option.")
 
 
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Data Processing Script")
+    parser.add_argument("--raw_loading", action="store_true", help="Load raw document data and perform AI tasks")
+    parser.add_argument("--processed_loading", action="store_true",
+                        help="Load processed data and run higher-level thinking AI function")
+    parser.add_argument("document_paths", nargs="*", help="Paths to the documents to process")
+
+    args = parser.parse_args()
+
+    main(args.raw_loading, args.processed_loading, args.document_paths)
 
 
-
-
-
+#to run:  python3 level_1_pdf_vectorstore_dlt_etl.py --raw_loading "/personal_receipts/2017/de/public_transport/3ZCCCW.pdf"
 
