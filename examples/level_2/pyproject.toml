@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "promethAI"
+name = "PromethAI_memory"
 version = "0.1.0"
-description = "PromethAI helps with nutrition choices and is an AI agent"
+description = "PromethAI memory manager"
 authors = ["Vasilije Markovic"]
 readme = "README.md"
 

@@ -5,7 +5,8 @@ from api import start_api_server
 # API_ENABLED = os.environ.get("API_ENABLED", "False").lower() == "true"
 import boto3
 
-environment = os.getenv("ENVIRONMENT", "dev")
+environment = os.getenv("AWS_ENV", "dev")
+
 
 
 def fetch_secret(secret_name, region_name, env_file_path):
@@ -52,4 +53,23 @@ else:
     )
     if secrets:
         print(secrets)
+    load_dotenv()
+
+
+# Check if "dev" is present in the task ARN
+if "dev" in environment:
+    # Fetch the secret
+    secrets = fetch_secret(
+        f"promethai-dev-backend-secretso-promethaijs-dotenv",
+        "eu-west-1",
+        ".env",
+    )
+    load_dotenv()
+elif "prd" in environment:
+    # Fetch the secret
+    secrets = fetch_secret(
+        f"promethai-prd-backend-secretso-promethaijs-dotenv",
+        "eu-west-1",
+        ".env",
+    )
     load_dotenv()

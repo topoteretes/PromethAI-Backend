@@ -1,0 +1,147 @@
+ {"response":{
+        "results": [
+            {
+                "category": "Nutritional Content",
+                "options": [
+                    {
+                        "category": "High Protein",
+                        "options": [
+                            {
+                                "category": "Animal Source"
+                            },
+                            {
+                                "category": "Plant Source"
+                            },
+                            {
+                                "category": "Supplement"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Low Fat",
+                        "options": [
+                            {
+                                "category": "Skimmed Products"
+                            },
+                            {
+                                "category": "Lean Meat"
+                            },
+                            {
+                                "category": "Low Fat Dairy"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "High Fiber",
+                        "options": [
+                            {
+                                "category": "Whole Grains"
+                            },
+                            {
+                                "category": "Legumes"
+                            },
+                            {
+                                "category": "Vegetables"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "category": "Cuisine",
+                "options": [
+                    {
+                        "category": "Famous Cuisine",
+                        "options": [
+                            {
+                                "category": "Chinese"
+                            },
+                            {
+                                "category": "Japanese"
+                            },
+                            {
+                                "category": "French"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Spicy Foods",
+                        "options": [
+                            {
+                                "category": "Mexican"
+                            },
+                            {
+                                "category": "Indian"
+                            },
+                            {
+                                "category": "Thai"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Mediterranean Flavors",
+                        "options": [
+                            {
+                                "category": "Greek"
+                            },
+                            {
+                                "category": "Italian"
+                            },
+                            {
+                                "category": "Spanish"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "category": "Allergies",
+                "options": [
+                    {
+                        "category": "Dairy",
+                        "options": [
+                            {
+                                "category": "Milk"
+                            },
+                            {
+                                "category": "Cheese"
+                            },
+                            {
+                                "category": "Butter"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Nuts",
+                        "options": [
+                            {
+                                "category": "Peanuts"
+                            },
+                            {
+                                "category": "Almonds"
+                            },
+                            {
+                                "category": "Cashews"
+                            }
+                        ]
+                    },
+                    {
+                        "category": "Gluten",
+                        "options": [
+                            {
+                                "category": "Wheat"
+                            },
+                            {
+                                "category": "Rye"
+                            },
+                            {
+                                "category": "Barley"
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        ]
+    }
+ }

@@ -1,0 +1,72 @@
+{
+    "response": {
+        "results": [
+            {
+                "category": "Nutritional Content",
+                "options": [
+                    {
+                        "category": "High Protein",
+                        "options": [
+                            {
+                                "category": "Animal Source"
+                            },
+                            {
+                                "category": "Plant Source"
+                            },
+                            {
+                                "category": "Supplement"
+                            }
+                        ]
+                    }
+                ],
+                "preference": [
+                    "Animal Source"
+                ]
+            },
+            {
+                "category": "Cuisine",
+                "options": [
+                    {
+                        "category": "Famous Cuisine",
+                        "options": [
+                            {
+                                "category": "Chinese"
+                            },
+                            {
+                                "category": "Japanese"
+                            },
+                            {
+                                "category": "French"
+                            }
+                        ]
+                    }
+                ],
+                "preference": [
+                    "Famous Cuisine"
+                ]
+            },
+            {
+                "category": "Allergies",
+                "options": [
+                    {
+                        "category": "Dairy",
+                        "options": [
+                            {
+                                "category": "Milk"
+                            },
+                            {
+                                "category": "Cheese"
+                            },
+                            {
+                                "category": "Butter"
+                            }
+                        ]
+                    }
+                ],
+                "preference": [
+                    "Dairy"
+                ]
+            }
+        ]
+    }
+}
