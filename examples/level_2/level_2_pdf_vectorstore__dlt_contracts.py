@@ -2,17 +2,19 @@
 
 import dlt
 from langchain import PromptTemplate, LLMChain
+from langchain.agents import initialize_agent, AgentType
 from langchain.chains.openai_functions import create_structured_output_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import PyPDFLoader
 import weaviate
 import os
 import json
-
+import asyncio
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers import WeaviateHybridSearchRetriever
 from langchain.schema import Document, SystemMessage, HumanMessage
+from langchain.tools import tool
 from langchain.vectorstores import Weaviate
 import uuid
 from dotenv import load_dotenv
@@ -22,10 +24,10 @@ from langchain import OpenAI, LLMMathChain
 
 import os
 
-
+from datetime import datetime
 import os
 from datetime import datetime
-
+from jinja2 import Template
 from langchain import PromptTemplate, LLMChain
 from langchain.chains.openai_functions import create_structured_output_chain
 from langchain.prompts import HumanMessagePromptTemplate, ChatPromptTemplate
@@ -42,17 +44,19 @@ import uuid
 load_dotenv()
 
 class VectorDB:
-    def __init__(self, user_id: str, index_name: str, db_type: str = "pinecone", weaviate_url: str = None):
+    def __init__(self, user_id: str, index_name: str, memory_id:str, ltm_memory_id:str='00000', st_memory_id:str='0000', buffer_id:str='0000', db_type: str = "pinecone",  namespace:str = None):
         self.user_id = user_id
         self.index_name = index_name
-        self.index = "my-agent"
         self.db_type = db_type
-        self.weaviate_url = weaviate_url
-
-        if self.db_type == "pinecone":
-            self.vectorstore = self.init_pinecone(self.index_name)
-        elif self.db_type == "weaviate":
-            self.init_weaviate(self.index_name, weaviate_url)
+        self.namespace=namespace
+        self.memory_id = memory_id
+        self.ltm_memory_id = ltm_memory_id
+        self.st_memory_id = st_memory_id
+        self.buffer_id = buffer_id
+        # if self.db_type == "pinecone":
+        #     self.vectorstore = self.init_pinecone(self.index_name)
+        if self.db_type == "weaviate":
+            self.init_weaviate(namespace=self.namespace)
         else:
             raise ValueError(f"Unsupported database type: {db_type}")
 
@@ -64,33 +68,40 @@ class VectorDB:
         pinecone.Index(index_name)
         vectorstore: Pinecone = Pinecone.from_existing_index(
 
-            index_name=self.index,
+            index_name=self.index_name,
             embedding=OpenAIEmbeddings(),
             namespace='RESULT'
         )
         return vectorstore
 
-    def init_weaviate(self, index_name, weaviate_url):
+    def init_weaviate(self, namespace:str):
+        embeddings = OpenAIEmbeddings()
         auth_config = weaviate.auth.AuthApiKey(api_key=os.environ.get('WEAVIATE_API_KEY'))
         client = weaviate.Client(
-            url=os.environ.get('WEAVIATE_INDEX'),
+            url=os.environ.get('WEAVIATE_URL'),
             auth_client_secret=auth_config,
+
             additional_headers={
                 "X-OpenAI-Api-Key": os.environ.get('OPENAI_API_KEY')
             }
         )
-        # Initialize Weaviate here
-        embeddings = OpenAIEmbeddings()
-        # I use 'LangChain' for index_name and 'text' for text_key
-        vectorstore = Weaviate(client, "LangChain", "text", embedding=embeddings)
+        retriever = WeaviateHybridSearchRetriever(
+            client=client,
+            index_name=namespace,
+            text_key="text",
+            attributes=[],
+            embedding=embeddings,
+            create_schema_if_missing=True,
+        )
+        return retriever
 
-    def update_memories(self, observation: str, namespace: str, page: str = "", source: str = ""):
+    def add_memories(self, observation: str,  page: str = "", source: str = ""):
         if self.db_type == "pinecone":
             # Update Pinecone memories here
             vectorstore: Pinecone = Pinecone.from_existing_index(
-                index_name=self.index, embedding=OpenAIEmbeddings(), namespace=namespace
+                index_name=self.index_name, embedding=OpenAIEmbeddings(), namespace=self.namespace
             )
-            from datetime import datetime
+
 
             retriever = vectorstore.as_retriever()
             retriever.add_documents(
@@ -104,49 +115,165 @@ class VectorDB:
                             "page": page,
                             "source": source,
                         },
-                        namespace=namespace,
+                        namespace=self.namespace,
                     )
                 ]
             )
         elif self.db_type == "weaviate":
             # Update Weaviate memories here
+            retriever = self.init_weaviate( self.namespace)
 
-            vectorstore: Weaviate = weaviate.from_existing_index(
-                index_name=self.index, embedding=OpenAIEmbeddings(), namespace=namespace
+
+            return retriever.add_documents([
+                Document(
+                    metadata={
+                        "inserted_at": str(datetime.now()),
+                        "text": observation,
+                        "user_id": str(self.user_id),
+                        "memory_id": str(self.memory_id),
+                        "ltm_memory_id": str(self.ltm_memory_id),
+                        "st_memory_id": str(self.st_memory_id),
+                        "buffer_id": str(self.buffer_id),
+
+                        # **source_metadata,
+                    },
+                    page_content=observation,
+                )]
             )
-            pass
     # def get_pinecone_vectorstore(self, namespace: str) -> pinecone.VectorStore:
     #     return Pinecone.from_existing_index(
     #         index_name=self.index, embedding=OpenAIEmbeddings(), namespace=namespace
     #     )
 
-    def fetch_memories(self, observation: str, namespace: str):
+    def fetch_memories(self, observation: str, params = None):
         if self.db_type == "pinecone":
             # Fetch Pinecone memories here
             pass
         elif self.db_type == "weaviate":
             # Fetch Weaviate memories here
+            """
+            Get documents from weaviate.
+
+            Args a json containing:
+                query (str): The query string.
+                path (list): The path for filtering, e.g., ['year'].
+                operator (str): The operator for filtering, e.g., 'Equal'.
+                valueText (str): The value for filtering, e.g., '2017*'.
+
+            Example:
+                get_from_weaviate(query="some query", path=['year'], operator='Equal', valueText='2017*')
+            """
+            retriever = self.init_weaviate(self.namespace)
+
+            print(self.namespace)
+            print(str(datetime.now()))
+
+            # Retrieve documents with filters applied
+            output = retriever.get_relevant_documents(
+                observation,
+                score=True,
+                where_filter=observation
+            )
+
+            return output
+
+    def delete_memories(self, params: None):
+        auth_config = weaviate.auth.AuthApiKey(api_key=os.environ.get('WEAVIATE_API_KEY'))
+        client = weaviate.Client(
+            url=os.environ.get('WEAVIATE_API_KEY'),
+            auth_client_secret=auth_config,
+
+            additional_headers={
+                "X-OpenAI-Api-Key": os.environ.get('OPENAI_API_KEY')
+            }
+        )
+        client.batch.delete_objects(
+            class_name=self.namespace,
+            # Same `where` filter as in the GraphQL API
+            where=params,
+        )
+
+    def update_memories(self):
+        pass
+
+
+
+class SemanticMemory:
+    def __init__(self, user_id: str, memory_id:str, ltm_memory_id:str, index_name: str, db_type:str="weaviate", namespace:str="SEMANTICMEMORY"):
+        # Add any semantic memory-related attributes or setup here
+        self.user_id=user_id
+        self.index_name = index_name
+        self.namespace = namespace
+        self.semantic_memory_id = str(uuid.uuid4())
+        self.memory_id = memory_id
+        self.ltm_memory_id = ltm_memory_id
+        self.vector_db = VectorDB(user_id=user_id, memory_id= self.memory_id, ltm_memory_id = self.ltm_memory_id, index_name=index_name, db_type=db_type, namespace=self.namespace)
+        self.db_type = db_type
+
+
+
+    def _update_memories(self ,memory_id:str="None", semantic_memory: str="None") -> None:
+        """Update semantic memory for the user"""
+
+        if self.db_type == "weaviate":
+            self.vector_db.add_memories( observation = semantic_memory)
+
+        elif self.db_type == "pinecone":
             pass
 
 
+    def _fetch_memories(self, observation: str,params) -> dict[str, str] | str:
+        """Fetch related characteristics, preferences or dislikes for a user."""
+        # self.init_pinecone(index_name=self.index)
+
+        if self.db_type == "weaviate":
+
+            return self.vector_db.fetch_memories(observation, params)
+
+        elif self.db_type == "pinecone":
+            pass
+
+
+class LongTermMemory:
+    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, namespace:str=None, db_type:str="weaviate"):
+        self.user_id = user_id
+        self.memory_id = memory_id
+        self.ltm_memory_id = str(uuid.uuid4())
+        self.index_name = index_name
+        self.namespace = namespace
+        self.db_type = db_type
+        # self.episodic_memory = EpisodicMemory()
+        self.semantic_memory = SemanticMemory(user_id = self.user_id, memory_id=self.memory_id, ltm_memory_id = self.ltm_memory_id, index_name=self.index_name, db_type=self.db_type)
+
 class ShortTermMemory:
-    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, knowledge_source:str=None):
+    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, namespace:str=None, db_type:str="weaviate"):
         # Add any short-term memory-related attributes or setup here
         self.user_id = user_id
         self.memory_id = memory_id
+        self.namespace = namespace
+        self.db_type = db_type
         self.stm_memory_id = str(uuid.uuid4())
-        self.knowledge_source = knowledge_source
         self.index_name = index_name
-        self.index = "my-agent"
-        self.episodic_buffer = EpisodicBuffer()
-        self.actions = Actions(stm_memory_id=self.stm_memory_id)
+        self.episodic_buffer = EpisodicBuffer(user_id=self.user_id, memory_id=self.memory_id, index_name=self.index_name, db_type=self.db_type)
+
 
 
 class EpisodicBuffer:
-    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, knowledge_source:str=None):
+    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, namespace:str='EPISODICBUFFER', db_type:str="weaviate"):
         # Add any short-term memory-related attributes or setup here
         self.user_id = user_id
         self.memory_id = memory_id
+        self.namespace = namespace
+        self.db_type = db_type
+        self.st_memory_id = "blah"
+        self.index_name = index_name
+        self.llm= ChatOpenAI(
+            temperature=0.0,
+            max_tokens=1200,
+            openai_api_key=os.environ.get('OPENAI_API_KEY'),
+            model_name="gpt-4-0613",
+        )
+        self.vector_db = VectorDB(user_id=user_id, memory_id= self.memory_id, st_memory_id = self.st_memory_id, index_name=index_name, db_type=db_type, namespace=self.namespace)
 
 
         def _context_filter(self, context: str):
@@ -167,212 +294,105 @@ class EpisodicBuffer:
             """Computes the temporal weighting for the buffer"""
             pass
 
+    async def infer_schema_from_text(self, text: str):
+        """Infer schema from text"""
 
-        def _compute_buffer():
-            """Computes buffer based on events, context and LTM"""
-            prompt = PromptTemplate.from_template(
-                "Based on the {EVENTS} and {CONTEXT} of {user_id} "
-                + " choose action out of {ACTIONS} :\n"
-                + "that can solve the problem observed in events and context"
-                + "Do not embellish."
-                + "\n\n Very short summary: "
-            )
-            # relevant_preferences = self._fetch_memories(
-            #     f"Users core preferences", namespace="PREFERENCES"
-            # )
-            # relevant_dislikes = self._fetch_memories(
-            #     f"Users core dislikes", namespace="PREFERENCES"
-            # )
-            # print(relevant_dislikes)
-            # print(relevant_preferences)
+        prompt_ = """ You are a json schema master. Create a JSON schema based on the following data and don't write anything else: {prompt} """
 
-            chain = LLMChain(llm=self.llm, prompt=prompt, verbose=True)
-            chain_results = chain.run(
-                name=self.user_id,
-                relevant_preferences=relevant_preferences,
-                relevant_dislikes=relevant_dislikes,
-            ).strip()
-            print(chain_results)
-            return chain_results
-
-class Events:
-    def __init__(self, user_id: str = "676", memory_id: str = None, index_name: str = None,
-                 knowledge_source: str = None):
-        # Add any short-term memory-related attributes or setup here
-        self.user_id = user_id
-        self.memory_id = memory_id
-
-        def _update_events(self, memory_id: str = "None", semantic_memory: str = "None", namespace: str = "None",
-                             source: str = "None") -> None:
-            """Update event memory for the user"""
-            vectorstore = self.vector_db.vectorstore
-            retriever = vectorstore.as_retriever()
-            metadata = {
-                "inserted_at": datetime.now(),
-                "memory_id": self.memory_id,
-                "stm_memory_id": self.stm_memory_id,
-                "event_id": str(uuid.uuid4()),
-                "source": source,
-                "last_updated_at": datetime.now(),
-                "last_accessed_at": datetime.now()
-            }
-
-            retriever.add_documents(
-                [
-                    Document(
-                        page_content=semantic_memory,
-                        metadata=metadata,
-                        namespace=namespace,
-                    )
-                ]
-            )
-    def _fetch_events(self, observation: str,knowledge_source:str, namespace: str) -> dict[str, str] | str:
-        """Fetch related characteristics, preferences or dislikes for a user."""
-        # self.init_pinecone(index_name=self.index)
-        vectorstore = self.vector_db.vectorstore
-        retriever = vectorstore.as_retriever()
-        # retriever.search_kwargs = {"filter": {"user_id": {"$eq": self.user_id}}, {"knowledge_source": {"$eq": knowledge_type}}}
-        answer_response = retriever.get_relevant_documents(observation)
-
-        answer_response.sort(
-            key=lambda doc: doc.metadata.get("inserted_at")
-            if "inserted_at" in doc.metadata
-            else datetime.min,
-            reverse=True,
+        complete_query = PromptTemplate(
+            input_variables=["prompt"],
+            template=prompt_,
         )
-        try:
-            answer_response = answer_response[0]
-        except IndexError:
-            return {
-                "error": "No document found for this user. Make sure that a query is appropriate"
-            }
-        return answer_response.page_content
 
+        chain = LLMChain(
+            llm=self.llm, prompt=complete_query, verbose=True
+        )
+        chain_result = chain.run(prompt=text).strip()
 
+        json_data = json.dumps(chain_result)
+        return json_data
 
-class Actions:
-    def __init__(self, user_id: str = "676", memory_id: str = None, index_name: str = None,
-                 knowledge_source: str = None, stm_memory_id:str=None):
-        # Add any short-term memory-related attributes or setup here
-        self.user_id = user_id
-        self.memory_id = memory_id
-        self.vector_db = VectorDB(user_id=user_id, index_name=index_name, db_type="pinecone")
-        self.stm_memory_id = stm_memory_id
+    def main_buffer(self, prompt=None, json_schema=None):
+        """AI function to convert unstructured data to structured data"""
+        # Here we define the user prompt and the structure of the output we desire
+        # prompt = output[0].page_content
+        class PromptWrapper(BaseModel):
+            observation: str = Field(
+                description="observation we want to fetch from vectordb"
+            ),
+            json_schema: str = Field(description="json schema we want to infer")
+        @tool("convert_to_structured", args_schema=PromptWrapper, return_direct=True)
+        def convert_to_structured(self, observation=None, json_schema=None):
+            """Convert unstructured data to structured data"""
 
-
-    def _update_memories(self ,memory_id:str="None", semantic_memory: str="None", namespace: str="None", source: str = "None") -> None:
-        """Update semantic memory for the user"""
-        vectorstore = self.vector_db.vectorstore
-        retriever = vectorstore.as_retriever()
-        metadata = {
-            "inserted_at": datetime.now(),
-            "memory_id": self.memory_id,
-            "stm_memory_id": self.stm_memory_id,
-            "source": source,
-            "last_updated_at": datetime.now(),
-            "last_accessed_at": datetime.now()
-        }
-
-        retriever.add_documents(
-            [
-                Document(
-                    page_content=semantic_memory,
-                    metadata=metadata,
-                    namespace=namespace,
-                )
+            prompt_msgs = [
+                SystemMessage(
+                    content="You are a world class algorithm converting unstructured data into structured data."
+                ),
+                HumanMessage(content="Convert unstructured data to structured data:"),
+                HumanMessagePromptTemplate.from_template("{input}"),
+                HumanMessage(content="Tips: Make sure to answer in the correct format"),
             ]
+            prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+            chain_funct = create_structured_output_chain(json_schema, prompt=prompt_, llm=self.llm, verbose=True)
+            output = chain_funct.run(input=observation, llm=self.llm)
+            yield output
+
+
+        class GoalWrapper(BaseModel):
+            observation: str = Field(
+                description="observation we want to fetch from vectordb"
+            )
+
+        @tool("update_memory_wrapper", args_schema=GoalWrapper, return_direct=True)
+        def update_memory_wrapper(observation, args_schema=GoalWrapper):
+            """Fetches data from the VectorDB and returns it as a python dictionary."""
+            query = self.vector_db.fetch_memories(observation)
+
+            return query
+
+        class UpdatePreferences(BaseModel):
+            observation: str = Field(
+                description="observation we want to fetch from vectordb"
+            )
+
+        @tool("add_memories_wrapper", args_schema=UpdatePreferences, return_direct=True)
+        def add_memories_wrapper(observation, args_schema=UpdatePreferences):
+            """Updates user preferences in the VectorDB."""
+            return self.vector_db.add_memories(observation)
+
+        agent = initialize_agent(
+            llm=self.llm,
+            tools=[convert_to_structured,update_memory_wrapper, add_memories_wrapper],
+            agent=AgentType.OPENAI_FUNCTIONS,
+            verbose=True,
         )
 
-    #episodic buffer
-    #should contain the information from the current session
+        prompt = """
 
-    # events
-    # should contain tracking events
-    # should also analyze episodic buffer and create events
+            Based on all the history and information of this user, classify the following query: {query} into one of the following categories:
+            1. Memory retrieval , 2. Memory update,  3. Convert data to structured   If the query is not any of these, then classify it as 'Other'
+            Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
+            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Memory added", "summary": "The user is updating their long term memory"
+            Make sure to include the factors in the summary if they are provided
+            """
 
-    # actions
-    # should have inject option for actions we want to add
-    # should have actions inferred from the episodic buffer, and LTM
-
-class EpisodicMemory:
-    def __init__(self):
-        # Add any episodic memory-related attributes or setup here
-        pass
-
-    # Add episodic memory methods here
-
-class SemanticMemory:
-    def __init__(self, user_id: str, memory_id:str, ltm_memory_id:str, index_name: str, knowledge_source:str):
-        # Add any semantic memory-related attributes or setup here
-        self.user_id=user_id
-        self.index_name = index_name
-        self.knowledge_source = knowledge_source
-        self.namespace = "SEMANTICMEMORY"
-        self.semantic_memory_id = str(uuid.uuid4())
-        self.memory_id = memory_id
-        self.ltm_memory_id = ltm_memory_id
-        self.vector_db = VectorDB(user_id=user_id, index_name=index_name, db_type="pinecone")
-
-    def _update_memories(self ,memory_id:str="None", semantic_memory: str="None", namespace: str="None", knowledge_source:str="None", document_type: str ="None", page:str="None", concept:str="None", source: str = "None") -> None:
-        """Update semantic memory for the user"""
-        vectorstore = self.vector_db.vectorstore
-        retriever = vectorstore.as_retriever()
-        metadata = {
-            "inserted_at": datetime.now(),
-            "memory_id": self.memory_id,
-            "ltm_memory_id": self.ltm_memory_id,
-            "semantic_memory_id": self.semantic_memory_id,
-            "source": source,
-            "knowledge_source": knowledge_source,
-            "last_updated_at": datetime.now(),
-            "last_accessed_at": datetime.now()
-        }
-
-        retriever.add_documents(
-            [
-                Document(
-                    page_content=semantic_memory,
-                    metadata=metadata,
-                    namespace=namespace,
-                )
-            ]
+        template = Template(prompt)
+        output = template.render(query=prompt)
+        complete_query = output
+        complete_query = PromptTemplate(
+            input_variables=["query"], template=complete_query
         )
-
-    def _fetch_memories(self, observation: str,knowledge_source:str, namespace: str) -> dict[str, str] | str:
-        """Fetch related characteristics, preferences or dislikes for a user."""
-        # self.init_pinecone(index_name=self.index)
-        vectorstore = self.vector_db.vectorstore
-        retriever = vectorstore.as_retriever()
-        # retriever.search_kwargs = {"filter": {"user_id": {"$eq": self.user_id}}, {"knowledge_source": {"$eq": knowledge_type}}}
-        answer_response = retriever.get_relevant_documents(observation)
-
-        answer_response.sort(
-            key=lambda doc: doc.metadata.get("inserted_at")
-            if "inserted_at" in doc.metadata
-            else datetime.min,
-            reverse=True,
+        summary_chain = LLMChain(
+            llm=self.llm, prompt=complete_query, verbose=True
         )
-        try:
-            answer_response = answer_response[0]
-        except IndexError:
-            return {
-                "error": "No document found for this user. Make sure that a query is appropriate"
-            }
-        return answer_response.page_content
+        from langchain.chains import SimpleSequentialChain
 
-class LongTermMemory:
-    def __init__(self, user_id: str = "676", memory_id:str=None, index_name: str = None, knowledge_source:str=None):
-        self.user_id = user_id
-        self.memory_id = memory_id
-        self.ltm_memory_id = str(uuid.uuid4())
-        self.knowledge_source=knowledge_source
-        self.index_name = index_name
-        self.index = "my-agent"
-        # self.init_pinecone(index_name)
-        self.episodic_memory = EpisodicMemory()
-        self.semantic_memory = SemanticMemory(self.user_id, self.memory_id, self.ltm_memory_id, self.index_name, self.knowledge_type)
-
-
+        overall_chain = SimpleSequentialChain(
+            chains=[summary_chain, agent], verbose=True
+        )
+        output = overall_chain.run(prompt)
+        return output
 
 
 
@@ -382,89 +402,48 @@ class LongTermMemory:
 
 class Memory:
     load_dotenv()
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
-    PINECONE_API_ENV = os.getenv("PINECONE_API_ENV", "")
-    def __init__(self, user_id: str  = "676", index_name: str=None, knowledge_source:str=None) -> None:
+
+    def __init__(self, user_id: str = "676", index_name: str = None, knowledge_source: str = None,
+                 knowledge_type: str = None, db_type:str="weaviate", namespace:str=None) -> None:
         self.user_id = user_id
         self.index_name = index_name
-        self.knowledge_source=knowledge_source
-        self.memory = str(uuid.uuid4())
-        self.index = "my-agent"
-        self.vector_db = VectorDB(user_id=user_id, index_name=index_name)
-        self.short_term_memory = ShortTermMemory()
-        self.long_term_memory = LongTermMemory(user_id=user_id,memory_id=self.memory, index_name=index_name, knowledge_type=self.knowledge_type)
-
-        # add session id.
-        # it should look for any memory with the current session id and extract memory id
+        self.db_type = db_type
+        self.knowledge_source = knowledge_source
+        self.knowledge_type = knowledge_type
+        self.memory_id = str(uuid.uuid4())
+        self.long_term_memory = LongTermMemory(user_id=self.user_id, memory_id=self.memory_id, index_name=index_name,
+                                                namespace=namespace, db_type=self.db_type)
+        self.short_term_memory = ShortTermMemory(user_id=self.user_id, memory_id=self.memory_id, index_name=index_name, db_type=self.db_type)
 
 
-    def _update_semantic_memory(self, semantic_memory, knowledge_source, document_type="", page=None, concept=None, source=""):
+    def _update_semantic_memory(self, semantic_memory:str):
         return self.long_term_memory.semantic_memory._update_memories(
-            memory_id=self.memory,
-            semantic_memory=semantic_memory,
-            namespace=self.long_term_memory.semantic_memory.namespace,
-            knowledge_source=knowledge_source,
-            document_type=document_type,
-            page=page,
-            concept=concept,
-            source=source
+            memory_id=self.memory_id,
+            semantic_memory=semantic_memory
+
         )
 
-    def _fetch_semantic_memory(self, observation, knowledge_source):
+    def _fetch_semantic_memory(self, observation, params):
         return self.long_term_memory.semantic_memory._fetch_memories(
-            observation=observation,
-            knowledge_source=knowledge_source,
-            namespace=self.long_term_memory.semantic_memory.namespace
+            observation=observation, params=params
+
+
+
         )
-    # def _update_memories(self, observation: str, namespace: str, page: str = "", source: str = "") -> None:
-    #     """Update related characteristics, preferences or dislikes for a user."""
-    #     vectorstore: Pinecone = Pinecone.from_existing_index(
-    #         index_name=self.index_name, embedding=OpenAIEmbeddings(), namespace=namespace
-    #     )
-    #
-    #     retriever = vectorstore.as_retriever()
-    #     retriever.add_documents(
-    #         [
-    #             Document(
-    #                 page_content=observation,
-    #                 metadata={
-    #                     "inserted_at": datetime.now(),
-    #                     "text": observation,
-    #                     "user_id": self.user_id,
-    #                     "page": page,
-    #                     "source": source,
-    #                 },
-    #                 namespace=namespace,
-    #             )
-    #         ]
-    #     )
-    #
-    # def _fetch_memories(self, observation: str, namespace: str) -> dict[str, str] | str:
-    #     """Fetch related characteristics, preferences or dislikes for a user."""
-    #     self.init_pinecone(index_name=self.index)
-    #     vectorstore: Pinecone = Pinecone.from_existing_index(
-    #         index_name=self.index, embedding=OpenAIEmbeddings(), namespace=namespace
-    #     )
-    #     retriever = vectorstore.as_retriever()
-    #     retriever.search_kwargs = {"filter": {"user_id": {"$eq": self.user_id}}}
-    #     answer_response = retriever.get_relevant_documents(observation)
-    #
-    #     answer_response.sort(
-    #         key=lambda doc: doc.metadata.get("inserted_at")
-    #         if "inserted_at" in doc.metadata
-    #         else datetime.min,
-    #         reverse=True,
-    #     )
-    #     try:
-    #         answer_response = answer_response[0]
-    #     except IndexError:
-    #         return {
-    #             "error": "No document found for this user. Make sure that a query is appropriate"
-    #         }
-    #     return answer_response.page_content
 
 if __name__ == "__main__":
-    agent = Memory()
-    bb = agent._update_semantic_memory(semantic_memory="Users core summary", knowledge_source="conceptual")
-    #bb = agent._fetch_semantic_memory("Users core summary", knowledge_type="conceptual")
+    namespace = "gggg"
+    agent = Memory(index_name="my-agent", user_id='555' )
+    #bb = agent._update_semantic_memory(semantic_memory="Users core summary")
+    bb = agent._fetch_semantic_memory(observation= "Users core summary", params =    {
+        "path": ["inserted_at"],
+        "operator": "Equal",
+        "valueText": "*2023*"
+    })
     print(bb)
+    # rrr = {
+    #     "path": ["year"],
+    #     "operator": "Equal",
+    #     "valueText": "2017*"
+    # }
+

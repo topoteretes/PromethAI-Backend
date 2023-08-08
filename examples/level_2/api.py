@@ -1,3 +1,5 @@
+from langchain.document_loaders import PyPDFLoader
+
 from level_2_pdf_vectorstore__dlt_contracts import ShortTermMemory
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -11,8 +13,9 @@ import uvicorn
 from fastapi import Request
 import yaml
 from fastapi import HTTPException
-
-
+from fastapi import FastAPI, UploadFile, File
+from typing import List
+from level_2_pdf_vectorstore__dlt_contracts import ShortTermMemory
 
 # Set up logging
 logging.basicConfig(
@@ -34,7 +37,7 @@ from fastapi import Depends
 
 
 class Payload(BaseModel):
-    payload: Dict[str, Any]
+    payload: str
 class ImageResponse(BaseModel):
     success: bool
     message: str
@@ -49,7 +52,7 @@ async def root():
     """
     return {"message": "Hello, World, I am alive!"}
 
-@app.get("/health",dependencies=[Depends(auth)])
+@app.get("/health")
 def health_check():
     """
     Health check endpoint that returns the server status.
@@ -58,26 +61,44 @@ def health_check():
 
 
 
-# @app.post("/testbot", response_model=Dict[str, Any])
-# async def test(request_data: Payload) -> Dict[str, Any]:
-#     """
-#     Endpoint to clear the cache.
-#
-#     Parameters:
-#     request_data (Payload): The request data containing the user and session IDs.
-#
-#     Returns:
-#     dict: A dictionary with a message indicating the cache was cleared.
-#     """
-#     json_payload = request_data.payload
-#
-#     try:
-#         # Instantiate AppAgent and call manage_resources
-#         app_agent = AppAgent(user_id=json_payload["user_id"])
-#         app_agent.manage_resources("add", "web_page", "https://nav.al/agi")
-#         return JSONResponse(content={"response": "Test"}, status_code=200)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+#curl -X POST -H "Content-Type: application/json" -d '{"data": "YourPayload"}' -F "files=@/path/to/your/pdf/file.pdf" http://127.0.0.1:8000/upload/
+
+@app.post("/upload/")
+async def upload_pdf_and_payload(
+        payload: Payload,
+        files: List[UploadFile] = File(...),
+):
+    try:
+        # Process the payload
+        payload_data = payload.payload
+
+        decoded_payload = json.loads(payload_data)
+        # Process each uploaded PDF file
+        results = []
+        for file in files:
+            contents = await file.read()
+            tmp_location = os.path.join('/tmp', "tmp.pdf")
+            with open(tmp_location, 'wb') as tmp_file:
+                tmp_file.write(contents)
+            loader = PyPDFLoader(tmp_location)
+            pages = loader.load_and_split()
+
+            stm = ShortTermMemory( user_id=decoded_payload['user_id'])
+            stm.episodic_buffer.main_buffer(prompt=decoded_payload['prompt'], pages=pages)
+            # Here you can perform your processing on the PDF contents
+            results.append({"filename": file.filename, "size": len(contents)})
+
+        return {"message": "Upload successful", "results": results}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
 
 
 # @app.post("/clear-cache", response_model=dict)
