@@ -114,6 +114,7 @@ class VectorDB:
                             "user_id": self.user_id,
                             "page": page,
                             "source": source,
+                            **source_metadata
                         },
                         namespace=self.namespace,
                     )
@@ -312,7 +313,7 @@ class EpisodicBuffer:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def main_buffer(self, prompt=None, json_schema=None):
+    def main_buffer(self, prompt=None):
         """AI function to convert unstructured data to structured data"""
         # Here we define the user prompt and the structure of the output we desire
         # prompt = output[0].page_content
@@ -323,20 +324,27 @@ class EpisodicBuffer:
             json_schema: str = Field(description="json schema we want to infer")
         @tool("convert_to_structured", args_schema=PromptWrapper, return_direct=True)
         def convert_to_structured(self, observation=None, json_schema=None):
-            """Convert unstructured data to structured data"""
+            def run_open_ai_mapper(self, observation=None, json_schema=None):
+                """Convert unstructured data to structured data"""
 
-            prompt_msgs = [
-                SystemMessage(
-                    content="You are a world class algorithm converting unstructured data into structured data."
-                ),
-                HumanMessage(content="Convert unstructured data to structured data:"),
-                HumanMessagePromptTemplate.from_template("{input}"),
-                HumanMessage(content="Tips: Make sure to answer in the correct format"),
-            ]
-            prompt_ = ChatPromptTemplate(messages=prompt_msgs)
-            chain_funct = create_structured_output_chain(json_schema, prompt=prompt_, llm=self.llm, verbose=True)
-            output = chain_funct.run(input=observation, llm=self.llm)
-            yield output
+                prompt_msgs = [
+                    SystemMessage(
+                        content="You are a world class algorithm converting unstructured data into structured data."
+                    ),
+                    HumanMessage(content="Convert unstructured data to structured data:"),
+                    HumanMessagePromptTemplate.from_template("{input}"),
+                    HumanMessage(content="Tips: Make sure to answer in the correct format"),
+                ]
+                prompt_ = ChatPromptTemplate(messages=prompt_msgs)
+                chain_funct = create_structured_output_chain(json_schema, prompt=prompt_, llm=self.llm, verbose=True)
+                output = chain_funct.run(input=observation, llm=self.llm)
+                yield output
+
+
+
+            pipeline = dlt.pipeline(pipeline_name="train_ticket", destination='duckdb', dataset_name='train_ticket_data')
+            info = pipeline.run(data=run_open_ai_mapper(prompt, json_schema))
+            return print(info)
 
 
         class GoalWrapper(BaseModel):
@@ -430,6 +438,9 @@ class Memory:
 
 
         )
+
+    def _run_buffer(self, prompt:str):
+        return self.short_term_memory.episodic_buffer.main_buffer(prompt=prompt)
 
 if __name__ == "__main__":
     namespace = "gggg"
