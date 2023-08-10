@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  promethaimem:
+  promethai_mem:
     networks:
       - promethai_mem_backend
     build:
@@ -18,5 +18,5 @@ services:
 
 
 networks:
-  agi_backend:
+  promethai_mem_backend:
     name: promethai_mem_backend
