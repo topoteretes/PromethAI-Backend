@@ -460,10 +460,43 @@ class Memory:
         self.knowledge_source = knowledge_source
         self.knowledge_type = knowledge_type
         self.memory_id = str(uuid.uuid4())
-        self.long_term_memory = LongTermMemory(user_id=self.user_id, memory_id=self.memory_id, index_name=index_name,
-                                                namespace=namespace, db_type=self.db_type)
-        self.short_term_memory = ShortTermMemory(user_id=self.user_id, memory_id=self.memory_id, index_name=index_name, db_type=self.db_type)
+        self.long_term_memory = None
+        self.short_term_memory = None
+        self.namespace = namespace
 
+    # Asynchronous factory function for creating LongTermMemory
+    async def async_create_long_term_memory(self,user_id, memory_id, index_name, namespace, db_type):
+        # Perform asynchronous initialization steps if needed
+        return LongTermMemory(
+            user_id=user_id, memory_id=memory_id, index_name=index_name,
+            namespace=namespace, db_type=db_type
+        )
+    async def async_init(self):
+        # Asynchronous initialization of LongTermMemory and ShortTermMemory
+        self.long_term_memory = await self.async_create_long_term_memory(
+            user_id=self.user_id, memory_id=self.memory_id, index_name=self.index_name,
+            namespace=self.namespace, db_type=self.db_type
+        )
+
+    async def async_create_short_term_memory(self, user_id, memory_id, index_name, db_type):
+        # Perform asynchronous initialization steps if needed
+        return ShortTermMemory(
+            user_id=user_id, memory_id=memory_id, index_name=index_name, db_type=db_type
+        )
+
+    async def async_init(self):
+        # Asynchronous initialization of LongTermMemory and ShortTermMemory
+        self.long_term_memory = await self.async_create_long_term_memory(
+            user_id=self.user_id, memory_id=self.memory_id, index_name=self.index_name,
+            namespace=self.namespace, db_type=self.db_type
+        )
+        self.short_term_memory = await self.async_create_short_term_memory(
+            user_id=self.user_id, memory_id=self.memory_id, index_name=self.index_name,
+            db_type=self.db_type
+        )
+        # self.short_term_memory = await ShortTermMemory.async_init(
+        #     user_id=self.user_id, memory_id=self.memory_id, index_name=self.index_name, db_type=self.db_type
+        # )
 
     def _update_semantic_memory(self, semantic_memory:str):
         return self.long_term_memory.semantic_memory._update_memories(
@@ -483,16 +516,23 @@ class Memory:
     def _run_buffer(self, user_input:str):
         return self.short_term_memory.episodic_buffer.main_buffer(user_input=user_input)
 
+
+
+async def main():
+    memory = Memory(user_id="123")
+    await memory.async_init()
+    memory._run_buffer(user_input="I want to get a schema for my data")
 if __name__ == "__main__":
-    namespace = "gggg"
-    agent = Memory(index_name="my-agent", user_id='555' )
+    import asyncio
+    asyncio.run(main())
+
     #bb = agent._update_semantic_memory(semantic_memory="Users core summary")
     # bb = agent._fetch_semantic_memory(observation= "Users core summary", params =    {
     #     "path": ["inserted_at"],
     #     "operator": "Equal",
     #     "valueText": "*2023*"
     # })
-    buffer = agent._run_buffer(user_input="I want to get a schema for my data")
+    # buffer = agent._run_buffer(user_input="I want to get a schema for my data")
     # print(bb)
     # rrr = {
     #     "path": ["year"],
