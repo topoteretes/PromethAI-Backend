@@ -9,6 +9,9 @@ from langchain.document_loaders import PyPDFLoader
 import weaviate
 import os
 import json
+from marvin import ai_classifier
+from enum import Enum
+import marvin
 import asyncio
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, ChatPromptTemplate
@@ -113,8 +116,7 @@ class VectorDB:
                             "text": observation,
                             "user_id": self.user_id,
                             "page": page,
-                            "source": source,
-                            **source_metadata
+                            "source": source
                         },
                         namespace=self.namespace,
                     )
@@ -173,7 +175,7 @@ class VectorDB:
             output = retriever.get_relevant_documents(
                 observation,
                 score=True,
-                where_filter=observation
+                where_filter=params
             )
 
             return output
@@ -274,7 +276,7 @@ class EpisodicBuffer:
             openai_api_key=os.environ.get('OPENAI_API_KEY'),
             model_name="gpt-4-0613",
         )
-        self.vector_db = VectorDB(user_id=user_id, memory_id= self.memory_id, st_memory_id = self.st_memory_id, index_name=index_name, db_type=db_type, namespace=self.namespace)
+        # self.vector_db = VectorDB(user_id=user_id, memory_id= self.memory_id, st_memory_id = self.st_memory_id, index_name=index_name, db_type=db_type, namespace=self.namespace)
 
 
         def _context_filter(self, context: str):
@@ -313,17 +315,31 @@ class EpisodicBuffer:
         json_data = json.dumps(chain_result)
         return json_data
 
-    def main_buffer(self, prompt=None):
+    def main_buffer(self, user_input=None):
         """AI function to convert unstructured data to structured data"""
         # Here we define the user prompt and the structure of the output we desire
         # prompt = output[0].page_content
         class PromptWrapper(BaseModel):
             observation: str = Field(
                 description="observation we want to fetch from vectordb"
-            ),
-            json_schema: str = Field(description="json schema we want to infer")
+            )\
+                # ,
+            # json_schema: str = Field(description="json schema we want to infer")
         @tool("convert_to_structured", args_schema=PromptWrapper, return_direct=True)
         def convert_to_structured(self, observation=None, json_schema=None):
+            """Convert unstructured data to structured data"""
+            BASE_DIR = os.getcwd()
+            json_path = os.path.join(BASE_DIR, "schema_registry", "ticket_schema.json")
+
+            def load_json_or_infer_schema(file_path, document_path):
+                """Load JSON schema from file or infer schema from text"""
+
+                # Attempt to load the JSON file
+                with open(file_path, 'r') as file:
+                    json_schema = json.load(file)
+                return json_schema
+
+            json_schema =load_json_or_infer_schema(json_path, None)
             def run_open_ai_mapper(self, observation=None, json_schema=None):
                 """Convert unstructured data to structured data"""
 
@@ -339,9 +355,6 @@ class EpisodicBuffer:
                 chain_funct = create_structured_output_chain(json_schema, prompt=prompt_, llm=self.llm, verbose=True)
                 output = chain_funct.run(input=observation, llm=self.llm)
                 yield output
-
-
-
             pipeline = dlt.pipeline(pipeline_name="train_ticket", destination='duckdb', dataset_name='train_ticket_data')
             info = pipeline.run(data=run_open_ai_mapper(prompt, json_schema))
             return print(info)
@@ -352,10 +365,27 @@ class EpisodicBuffer:
                 description="observation we want to fetch from vectordb"
             )
 
-        @tool("update_memory_wrapper", args_schema=GoalWrapper, return_direct=True)
-        def update_memory_wrapper(observation, args_schema=GoalWrapper):
+        @tool("fetch_memory_wrapper", args_schema=GoalWrapper, return_direct=True)
+        def fetch_memory_wrapper(observation, args_schema=GoalWrapper):
             """Fetches data from the VectorDB and returns it as a python dictionary."""
-            query = self.vector_db.fetch_memories(observation)
+            print("HELLO, HERE IS THE OBSERVATION: ", observation)
+
+            marvin.settings.openai.api_key = os.environ.get('OPENAI_API_KEY')
+            @ai_classifier
+            class MemoryRoute(Enum):
+                """Represents distinct routes  for  different memory types."""
+
+                storage_of_documents_and_knowledge_to_memory = "SEMANTICMEMORY"
+                raw_information_currently_processed_in_short_term_memory = "EPISODICBUFFER"
+                raw_information_kept_in_short_term_memory = "SHORTTERMMEMORY"
+                long_term_recollections_of_past_events_and_emotions = "EPISODICMEMORY"
+
+            namespace= MemoryRoute(observation)
+            vector_db = VectorDB(user_id=self.user_id, memory_id=self.memory_id, st_memory_id=self.st_memory_id,
+                                 index_name=self.index_name, db_type=self.db_type, namespace=namespace.value)
+
+
+            query = vector_db.fetch_memories(observation)
 
             return query
 
@@ -367,29 +397,40 @@ class EpisodicBuffer:
         @tool("add_memories_wrapper", args_schema=UpdatePreferences, return_direct=True)
         def add_memories_wrapper(observation, args_schema=UpdatePreferences):
             """Updates user preferences in the VectorDB."""
-            return self.vector_db.add_memories(observation)
+            @ai_classifier
+            class MemoryRoute(Enum):
+                """Represents distinct routes  for  different memory types."""
+
+                storage_of_documents_and_knowledge_to_memory = "SEMANTICMEMORY"
+                raw_information_currently_processed_in_short_term_memory = "EPISODICBUFFER"
+                raw_information_kept_in_short_term_memory = "SHORTTERMMEMORY"
+                long_term_recollections_of_past_events_and_emotions = "EPISODICMEMORY"
+
+            namespace= MemoryRoute(observation)
+            print("HELLO, HERE IS THE OBSERVATION 2: ")
+            vector_db = VectorDB(user_id=self.user_id, memory_id=self.memory_id, st_memory_id=self.st_memory_id,
+                                 index_name=self.index_name, db_type=self.db_type, namespace=namespace.value)
+            return vector_db.add_memories(observation)
 
         agent = initialize_agent(
             llm=self.llm,
-            tools=[convert_to_structured,update_memory_wrapper, add_memories_wrapper],
+            tools=[convert_to_structured,fetch_memory_wrapper, add_memories_wrapper],
             agent=AgentType.OPENAI_FUNCTIONS,
             verbose=True,
         )
 
         prompt = """
 
-            Based on all the history and information of this user, classify the following query: {query} into one of the following categories:
+            Based on all the history and information of this user, decide based on user query query: {query} which of the following tasks needs to be done:
             1. Memory retrieval , 2. Memory update,  3. Convert data to structured   If the query is not any of these, then classify it as 'Other'
-            Return the classification and a very short summary of the query as a python dictionary. Update or replace or remove the original factors with the new factors if it is specified.
-            with following python dictionary format 'Result_type': 'Goal', "Result_action": "Goal changed", "value": "Memory added", "summary": "The user is updating their long term memory"
-            Make sure to include the factors in the summary if they are provided
+            Return the result in format:  'Result_type': 'Goal', "Original_query": "Original query"
             """
 
-        template = Template(prompt)
-        output = template.render(query=prompt)
-        complete_query = output
+        # template = Template(prompt)
+        # output = template.render(query=user_input)
+        # complete_query = output
         complete_query = PromptTemplate(
-            input_variables=["query"], template=complete_query
+            input_variables=["query"], template=prompt
         )
         summary_chain = LLMChain(
             llm=self.llm, prompt=complete_query, verbose=True
@@ -399,7 +440,7 @@ class EpisodicBuffer:
         overall_chain = SimpleSequentialChain(
             chains=[summary_chain, agent], verbose=True
         )
-        output = overall_chain.run(prompt)
+        output = overall_chain.run(user_input)
         return output
 
 
@@ -439,19 +480,20 @@ class Memory:
 
         )
 
-    def _run_buffer(self, prompt:str):
-        return self.short_term_memory.episodic_buffer.main_buffer(prompt=prompt)
+    def _run_buffer(self, user_input:str):
+        return self.short_term_memory.episodic_buffer.main_buffer(user_input=user_input)
 
 if __name__ == "__main__":
     namespace = "gggg"
     agent = Memory(index_name="my-agent", user_id='555' )
     #bb = agent._update_semantic_memory(semantic_memory="Users core summary")
-    bb = agent._fetch_semantic_memory(observation= "Users core summary", params =    {
-        "path": ["inserted_at"],
-        "operator": "Equal",
-        "valueText": "*2023*"
-    })
-    print(bb)
+    # bb = agent._fetch_semantic_memory(observation= "Users core summary", params =    {
+    #     "path": ["inserted_at"],
+    #     "operator": "Equal",
+    #     "valueText": "*2023*"
+    # })
+    buffer = agent._run_buffer(user_input="I want to find my ticket from 2017")
+    # print(bb)
     # rrr = {
     #     "path": ["year"],
     #     "operator": "Equal",
