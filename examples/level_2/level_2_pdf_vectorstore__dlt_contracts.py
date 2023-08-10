@@ -326,7 +326,7 @@ class EpisodicBuffer:
                 # ,
             # json_schema: str = Field(description="json schema we want to infer")
         @tool("convert_to_structured", args_schema=PromptWrapper, return_direct=True)
-        def convert_to_structured(self, observation=None, json_schema=None):
+        def convert_to_structured( observation=None, json_schema=None):
             """Convert unstructured data to structured data"""
             BASE_DIR = os.getcwd()
             json_path = os.path.join(BASE_DIR, "schema_registry", "ticket_schema.json")
@@ -340,7 +340,7 @@ class EpisodicBuffer:
                 return json_schema
 
             json_schema =load_json_or_infer_schema(json_path, None)
-            def run_open_ai_mapper(self, observation=None, json_schema=None):
+            def run_open_ai_mapper(observation=None, json_schema=None):
                 """Convert unstructured data to structured data"""
 
                 prompt_msgs = [
@@ -492,7 +492,7 @@ if __name__ == "__main__":
     #     "operator": "Equal",
     #     "valueText": "*2023*"
     # })
-    buffer = agent._run_buffer(user_input="I want to find my ticket from 2017")
+    buffer = agent._run_buffer(user_input="I want to get a schema for my data")
     # print(bb)
     # rrr = {
     #     "path": ["year"],
