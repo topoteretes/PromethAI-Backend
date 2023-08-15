@@ -30,7 +30,7 @@ The fast API endpoint accepts prompts and PDF files and returns a JSON object wi
     -X POST                                                                                             
     -F "prompt=The quick brown fox"                                                                     
     -F "file=@/path/to/file.pdf"                                                                       
-    http://localhost:8000/generate/                                                                    
+    http://localhost:8000/upload/                                                                    
 ```
 
 {
