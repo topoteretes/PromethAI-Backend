@@ -9,6 +9,14 @@ from langchain.document_loaders import PyPDFLoader
 import weaviate
 import os
 import json
+import asyncio
+from typing import Any, Dict, List
+
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import LLMResult, HumanMessage
+from langchain.callbacks.base import AsyncCallbackHandler, BaseCallbackHandler
+
+from langchain.memory import VectorStoreRetrieverMemory
 from marvin import ai_classifier
 from enum import Enum
 import marvin
@@ -16,7 +24,7 @@ import asyncio
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, ChatPromptTemplate
 from langchain.retrievers import WeaviateHybridSearchRetriever
-from langchain.schema import Document, SystemMessage, HumanMessage
+from langchain.schema import Document, SystemMessage, HumanMessage, LLMResult
 from langchain.tools import tool
 from langchain.vectorstores import Weaviate
 import uuid
@@ -46,7 +54,31 @@ import weaviate
 import uuid
 load_dotenv()
 
+
+class MyCustomSyncHandler(BaseCallbackHandler):
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        print(f"Sync handler being called in a `thread_pool_executor`: token: {token}")
+class MyCustomAsyncHandler(AsyncCallbackHandler):
+    """Async callback handler that can be used to handle callbacks from langchain."""
+
+    async def on_llm_start(
+            self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
+    ) -> None:
+        """Run when chain starts running."""
+        print("zzzz....")
+        await asyncio.sleep(0.3)
+        class_name = serialized["name"]
+        print("Hi! I just woke up. Your llm is starting")
+
+    async def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+        """Run when chain ends running."""
+        print("zzzz....")
+        await asyncio.sleep(0.3)
+        print("Hi! I just woke up. Your llm is ending")
+
 class VectorDB:
+    OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     def __init__(self, user_id: str, index_name: str, memory_id:str, ltm_memory_id:str='00000', st_memory_id:str='0000', buffer_id:str='0000', db_type: str = "pinecone",  namespace:str = None):
         self.user_id = user_id
         self.index_name = index_name
@@ -62,6 +94,7 @@ class VectorDB:
             self.init_weaviate(namespace=self.namespace)
         else:
             raise ValueError(f"Unsupported database type: {db_type}")
+        load_dotenv()
 
     def init_pinecone(self, index_name):
         load_dotenv()
@@ -275,7 +308,10 @@ class EpisodicBuffer:
             max_tokens=1200,
             openai_api_key=os.environ.get('OPENAI_API_KEY'),
             model_name="gpt-4-0613",
+            callbacks=[MyCustomSyncHandler(), MyCustomAsyncHandler()],
         )
+
+
         # self.vector_db = VectorDB(user_id=user_id, memory_id= self.memory_id, st_memory_id = self.st_memory_id, index_name=index_name, db_type=db_type, namespace=self.namespace)
 
 
@@ -316,13 +352,34 @@ class EpisodicBuffer:
         return json_data
 
     def main_buffer(self, user_input=None):
-        """AI function to convert unstructured data to structured data"""
+        """AI buffer to convert unstructured data to structured data"""
         # Here we define the user prompt and the structure of the output we desire
         # prompt = output[0].page_content
+
+
+
+        # vectorstore = Weaviate.from_documents(documents, embeddings, client=client, by_text=False)
+        # retriever = WeaviateHybridSearchRetriever(
+        #     client=client,
+        #     index_name="EVENTBUFFER",
+        #     text_key="text",
+        #     attributes=[],
+        #     embedding=embeddings,
+        #     create_schema_if_missing=True,
+        # )
+
+        # vector_db = VectorDB(user_id=self.user_id, memory_id=self.memory_id, st_memory_id=self.st_memory_id,
+        #                      index_name=self.index_name, db_type=self.db_type, namespace="EVENTBUFFER")
+
+        # query = vector_db.
+
+
+        # retriever = vectorstore.as_retriever(search_kwargs=dict(k=1))
+        # memory = VectorStoreRetrieverMemory(retriever=retriever)
         class PromptWrapper(BaseModel):
             observation: str = Field(
                 description="observation we want to fetch from vectordb"
-            )\
+            )
                 # ,
             # json_schema: str = Field(description="json schema we want to infer")
         @tool("convert_to_structured", args_schema=PromptWrapper, return_direct=True)
@@ -379,6 +436,7 @@ class EpisodicBuffer:
                 raw_information_currently_processed_in_short_term_memory = "EPISODICBUFFER"
                 raw_information_kept_in_short_term_memory = "SHORTTERMMEMORY"
                 long_term_recollections_of_past_events_and_emotions = "EPISODICMEMORY"
+                raw_information_to_store_as_events = "EVENTBUFFER"
 
             namespace= MemoryRoute(observation)
             vector_db = VectorDB(user_id=self.user_id, memory_id=self.memory_id, st_memory_id=self.st_memory_id,
@@ -405,6 +463,7 @@ class EpisodicBuffer:
                 raw_information_currently_processed_in_short_term_memory = "EPISODICBUFFER"
                 raw_information_kept_in_short_term_memory = "SHORTTERMMEMORY"
                 long_term_recollections_of_past_events_and_emotions = "EPISODICMEMORY"
+                raw_information_to_store_as_events = "EVENTBUFFER"
 
             namespace= MemoryRoute(observation)
             print("HELLO, HERE IS THE OBSERVATION 2: ")
@@ -416,10 +475,12 @@ class EpisodicBuffer:
             llm=self.llm,
             tools=[convert_to_structured,fetch_memory_wrapper, add_memories_wrapper],
             agent=AgentType.OPENAI_FUNCTIONS,
+
             verbose=True,
         )
 
         prompt = """
+
 
             Based on all the history and information of this user, decide based on user query query: {query} which of the following tasks needs to be done:
             1. Memory retrieval , 2. Memory update,  3. Convert data to structured   If the query is not any of these, then classify it as 'Other'
@@ -430,7 +491,7 @@ class EpisodicBuffer:
         # output = template.render(query=user_input)
         # complete_query = output
         complete_query = PromptTemplate(
-            input_variables=["query"], template=prompt
+            input_variables=[ "query"], template=prompt
         )
         summary_chain = LLMChain(
             llm=self.llm, prompt=complete_query, verbose=True
@@ -451,6 +512,8 @@ class EpisodicBuffer:
 
 class Memory:
     load_dotenv()
+    OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.0))
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
     def __init__(self, user_id: str = "676", index_name: str = None, knowledge_source: str = None,
                  knowledge_type: str = None, db_type:str="weaviate", namespace:str=None) -> None:
@@ -463,6 +526,7 @@ class Memory:
         self.long_term_memory = None
         self.short_term_memory = None
         self.namespace = namespace
+        load_dotenv()
 
     # Asynchronous factory function for creating LongTermMemory
     async def async_create_long_term_memory(self,user_id, memory_id, index_name, namespace, db_type):
@@ -521,12 +585,12 @@ class Memory:
 async def main():
     memory = Memory(user_id="123")
     await memory.async_init()
-    memory._run_buffer(user_input="I want to get a schema for my data")
+    memory._run_buffer(user_input="I want to get a my past data from 2017")
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 
-    #bb = agent._update_semantic_memory(semantic_memory="Users core summary")
+    # bb = agent._update_semantic_memory(semantic_memory="Users core summary")
     # bb = agent._fetch_semantic_memory(observation= "Users core summary", params =    {
     #     "path": ["inserted_at"],
     #     "operator": "Equal",

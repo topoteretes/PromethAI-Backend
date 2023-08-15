@@ -126,8 +126,10 @@ async def upload_pdf_and_payload(
             # bb = await Memory_._run_buffer(user_input=decoded_payload['prompt'])
             # print(bb)
 
-    except:
-        pass
+
+    except Exception as e:
+
+        return {"error": str(e)}
             # Here you can perform your processing on the PDF contents
             # results.append({"filename": file.filename, "size": len(contents)})
 
