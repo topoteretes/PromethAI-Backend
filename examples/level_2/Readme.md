@@ -32,3 +32,13 @@ The fast API endpoint accepts prompts and PDF files and returns a JSON object wi
     -F "file=@/path/to/file.pdf"                                                                       
     http://localhost:8000/generate/                                                                    
 ```
+
+{
+  "payload": {
+    "user_id": "681",
+    "session_id": "471",
+    "model_speed": "slow",
+    "prompt": "Temperature=Cold;Food Type=Ice Cream",
+    "pdf_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+  }
+}
