@@ -92,7 +92,7 @@ Our focus is currently on food, but the system is extendible to any area.
 
 <p align="center">
   <a href="https://prometh.ai">
-    <img  src="https://promethai-public-assets.s3.eu-west-1.amazonaws.com/product_demo-min.gif" alt="AI assistant" width="25%" height="50%"/>
+    <img  src="https://promethai-public-assets.s3.eu-west-1.amazonaws.com/product_demo-min.gif"  width="25%" height="50%"/>
   </a>
 </p>
 
