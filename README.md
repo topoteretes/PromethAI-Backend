@@ -86,16 +86,12 @@ Our focus is currently on food, but the system is extendible to any area.
 - Easy to use
 - Easy to deploy
 
-## 💻 Screenshots
+## 💻 Demo
 
 
 <p align="center">
   <a href="https://prometh.ai">
-    <img src="assets/img_5.png" alt="Description1" width="15%" height="50%" />
-    <img src="assets/img_1.png" alt="Description2" width="15%" height="50%" />
-    <img src="assets/img_2.png" alt="Description3" width="15%" height="50%" />
-    <img src="assets/img_3.png" alt="Description4" width="15%" height="50%" />
-    <img src="assets/img_4.png" alt="Description4" width="15%" height="50%" />
+    <img  src="https://promethai-public-assets.s3.eu-west-1.amazonaws.com/product_demo-min.gif" alt="AI assistant" width="25%" height="50%"/>
   </a>
 </p>
 

@@ -1,6 +1,6 @@
 from langchain.document_loaders import PyPDFLoader
 
-from level_2_pdf_vectorstore__dlt_contracts import ShortTermMemory
+from level_2_pdf_vectorstore__dlt_contracts import Memory
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -15,8 +15,7 @@ import yaml
 from fastapi import HTTPException
 from fastapi import FastAPI, UploadFile, File
 from typing import List
-from level_2_pdf_vectorstore__dlt_contracts import ShortTermMemory
-
+import requests
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -36,8 +35,6 @@ app = FastAPI(debug=True)
 from fastapi import Depends
 
 
-class Payload(BaseModel):
-    payload: str
 class ImageResponse(BaseModel):
     success: bool
     message: str
@@ -66,39 +63,98 @@ def health_check():
 
 #curl -X POST -H "Content-Type: application/json" -d '{"data": "YourPayload"}' -F "files=@/path/to/your/pdf/file.pdf" http://127.0.0.1:8000/upload/
 
-@app.post("/upload/")
+from fastapi import FastAPI, UploadFile, File
+import requests
+import os
+import json
+
+app = FastAPI()
+
+
+from io import BytesIO
+
+
+class Payload(BaseModel):
+    payload: Dict[str, Any]
+
+@app.post("/upload/", response_model=dict)
 async def upload_pdf_and_payload(
         payload: Payload,
-        files: List[UploadFile] = File(...),
+        # files: List[UploadFile] = File(...),
 ):
     try:
         # Process the payload
-        payload_data = payload.payload
+        decoded_payload = payload.payload
+    # except:
+    #     pass
+    #
+    # return JSONResponse(content={"response": decoded_payload}, status_code=200)
 
-        decoded_payload = json.loads(payload_data)
-        # Process each uploaded PDF file
-        results = []
-        for file in files:
-            contents = await file.read()
+        # Download the remote PDF if URL is provided
+        if 'pdf_url' in decoded_payload:
+            pdf_response = requests.get(decoded_payload['pdf_url'])
+            pdf_content = pdf_response.content
+
+            logging.info("Downloaded PDF from URL")
+
+            # Create an in-memory file-like object for the PDF content
+            pdf_stream = BytesIO(pdf_content)
+
+            contents = pdf_stream.read()
+
             tmp_location = os.path.join('/tmp', "tmp.pdf")
             with open(tmp_location, 'wb') as tmp_file:
                 tmp_file.write(contents)
+
+            logging.info("Wrote PDF from URL")
+
+            # Process the PDF using PyPDFLoader
             loader = PyPDFLoader(tmp_location)
             pages = loader.load_and_split()
+            logging.info(" PDF split into pages")
+            Memory_ = Memory(index_name="my-agent", user_id='555' )
+            await Memory_.async_init()
+            Memory_._run_buffer(user_input="I want to get a schema for my data")
 
-            stm = ShortTermMemory( user_id=decoded_payload['user_id'])
-            stm.episodic_buffer.main_buffer(prompt=decoded_payload['prompt'], pages=pages)
-            # Here you can perform your processing on the PDF contents
-            results.append({"filename": file.filename, "size": len(contents)})
 
-        return {"message": "Upload successful", "results": results}
+            # Run the buffer
+            response = Memory_._run_buffer(user_input="I want to get a schema for my data")
+            return JSONResponse(content={"response": response}, status_code=200)
+
+            #to do: add the user id to the payload
+            #to do add the raw pdf to payload
+            # bb = await Memory_._run_buffer(user_input=decoded_payload['prompt'])
+            # print(bb)
+
 
     except Exception as e:
+
         return {"error": str(e)}
+            # Here you can perform your processing on the PDF contents
+            # results.append({"filename": file.filename, "size": len(contents)})
 
-
-
-
+            # Append the in-memory file to the files list
+            # files.append(UploadFile(pdf_stream, filename="downloaded.pdf"))
+    #
+    #     # Process each uploaded PDF file
+    #     results = []
+    #     for file in files:
+    #         contents = await file.read()
+    #         tmp_location = os.path.join('/tmp', "tmp.pdf")
+    #         with open(tmp_location, 'wb') as tmp_file:
+    #             tmp_file.write(contents)
+    #         loader = PyPDFLoader(tmp_location)
+    #         pages = loader.load_and_split()
+    #
+    #         stm = ShortTermMemory(user_id=decoded_payload['user_id'])
+    #         stm.episodic_buffer.main_buffer(prompt=decoded_payload['prompt'], pages=pages)
+    #         # Here you can perform your processing on the PDF contents
+    #         results.append({"filename": file.filename, "size": len(contents)})
+    #
+    #     return {"message": "Upload successful", "results": results}
+    #
+    # except Exception as e:
+    #     return {"error": str(e)}
 
 
 # @app.post("/clear-cache", response_model=dict)
