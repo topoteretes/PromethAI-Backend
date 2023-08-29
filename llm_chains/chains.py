@@ -28,7 +28,7 @@ from langchain.tools import GooglePlacesTool
 import tiktoken
 import asyncio
 import logging
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI, ChatLiteLLM
 from langchain.agents.agent_toolkits import ZapierToolkit
 from langchain.agents import AgentType
 from langchain.utilities.zapier import ZapierNLAWrapper
@@ -107,28 +107,28 @@ class Agent:
         self.last_message = ""
         self.openai_model35 = "gpt-3.5-turbo-16k-0613"
         self.openai_model4 = "gpt-4-0613"
-        self.llm = ChatOpenAI(
+        self.llm = ChatLiteLLM(
             temperature=0.0,
             max_tokens=1500,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
             cache=False,
         )
-        self.llm35_fast = ChatOpenAI(
+        self.llm35_fast = ChatLiteLLM(
             temperature=0.2,
             max_tokens=550,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model35,
             cache=False,
         )
-        self.llm_fast = ChatOpenAI(
+        self.llm_fast = ChatLiteLLM(
             temperature=0.0,
             max_tokens=700,
             openai_api_key=self.OPENAI_API_KEY,
             model_name=self.openai_model4,
             cache=False,
         )
-        self.llm35 = ChatOpenAI(
+        self.llm35 = ChatLiteLLM(
             temperature=0.0,
             max_tokens=1200,
             openai_api_key=self.OPENAI_API_KEY,
@@ -136,9 +136,9 @@ class Agent:
             cache=False,
         )
         # self.llm = ChatOpenAI(temperature=0.0,max_tokens = 1500, openai_api_key = self.OPENAI_API_KEY, model_name="gpt-4")
-        self.replicate_llm = Replicate(
+        self.replicate_llm = ChatLiteLLM(
             model="replicate/vicuna-13b:a68b84083b703ab3d5fbf31b6e25f16be2988e4c3e21fe79c2ff1c18b99e61c1",
-            api_token=self.REPLICATE_API_TOKEN,
+            api_key=self.REPLICATE_API_TOKEN,
         )
         self.verbose: bool = True
         self.openai_temperature = 0.0
