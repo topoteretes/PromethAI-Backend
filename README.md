@@ -65,7 +65,7 @@
 
 <hr>
 
-
+## We took all the work we did with PromethAI into our new product, cognee -> check it out [here]()
 
 ## What is it
 
